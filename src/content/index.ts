@@ -4,6 +4,13 @@ import { MenuActions } from './MenuActions';
 import { MenuItem, DEFAULT_CONFIG, DEFAULT_SELECTION_MENU, DEFAULT_GLOBAL_MENU, MenuConfig } from '../types';
 import { getStorageData } from '../utils/storage';
 
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface ToastItem {
+  element: HTMLElement;
+  timeoutId: number;
+}
+
 class TheCircle {
   private radialMenu: RadialMenu;
   private menuActions: MenuActions;
@@ -13,6 +20,8 @@ class TheCircle {
   private lastKeyTime: number = 0;
   private lastKey: string = '';
   private readonly DOUBLE_TAP_DELAY = 300; // ms
+  private activeToasts: ToastItem[] = [];
+  private readonly MAX_TOASTS = 4;
 
   constructor() {
     this.radialMenu = new RadialMenu();
@@ -131,13 +140,36 @@ class TheCircle {
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim() || '';
 
-    // Get mouse position or use center of viewport
-    const x = window.innerWidth / 2;
-    const y = window.innerHeight / 2;
+    let x: number;
+    let y: number;
+    let selectionRect: DOMRect | null = null;
+
+    // If text is selected, get position from selection
+    if (selectedText && selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      selectionRect = range.getBoundingClientRect();
+      // Position menu below the selected text
+      x = selectionRect.left + selectionRect.width / 2;
+      y = selectionRect.bottom + 20;
+
+      // Ensure menu stays within viewport
+      if (y + 200 > window.innerHeight) {
+        y = selectionRect.top - 20;
+      }
+      if (x < 150) x = 150;
+      if (x > window.innerWidth - 150) x = window.innerWidth - 150;
+    } else {
+      // No selection, center in viewport
+      x = window.innerWidth / 2;
+      y = window.innerHeight / 2;
+    }
 
     // Choose menu based on whether text is selected
     const menuItems = selectedText ? this.selectionMenuItems : this.globalMenuItems;
     this.menuActions.setSelectedText(selectedText);
+
+    // Pass selection info to RadialMenu for result panel positioning
+    this.radialMenu.setSelectionInfo(selectedText ? selectionRect : null);
 
     this.radialMenu.show(x, y, menuItems, async (item) => {
       await this.handleMenuAction(item);
@@ -172,25 +204,88 @@ class TheCircle {
       const result = await this.menuActions.execute(item);
 
       if (result.type === 'error') {
-        this.radialMenu.showResult('错误', result.result || '未知错误');
+        this.showToast(result.result || '未知错误', 'error');
       } else if (result.type === 'success') {
-        this.showToast(result.result || '操作成功');
+        this.showToast(result.result || '操作成功', 'success');
       } else if (result.type === 'info') {
-        this.showToast(result.result || '');
+        this.showToast(result.result || '', 'info');
       }
     }
   }
 
-  private showToast(message: string): void {
+  private getToastIcon(type: ToastType): string {
+    const icons: Record<ToastType, string> = {
+      success: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>`,
+      error: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>`,
+      warning: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>`,
+      info: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>`,
+    };
+    return icons[type];
+  }
+
+  private showToast(message: string, type: ToastType = 'info'): void {
+    // Remove oldest toast if we've reached the limit
+    if (this.activeToasts.length >= this.MAX_TOASTS) {
+      const oldest = this.activeToasts.shift();
+      if (oldest) {
+        clearTimeout(oldest.timeoutId);
+        oldest.element.remove();
+      }
+    }
+
     const toast = document.createElement('div');
-    toast.className = 'thecircle-toast';
-    toast.textContent = message;
+    toast.className = `thecircle-toast thecircle-toast-${type}`;
+    toast.innerHTML = `
+      <span class="thecircle-toast-icon">${this.getToastIcon(type)}</span>
+      <span class="thecircle-toast-message">${message}</span>
+    `;
+
     document.body.appendChild(toast);
 
-    setTimeout(() => {
-      toast.classList.add('thecircle-fade-out');
-      setTimeout(() => toast.remove(), 200);
+    // Update positions of all toasts
+    this.updateToastPositions();
+
+    // Create timeout for removal
+    const timeoutId = window.setTimeout(() => {
+      this.removeToast(toast);
     }, 2000);
+
+    this.activeToasts.push({ element: toast, timeoutId });
+  }
+
+  private updateToastPositions(): void {
+    this.activeToasts.forEach((item, index) => {
+      item.element.setAttribute('data-index', String(index));
+    });
+  }
+
+  private removeToast(toastElement: HTMLElement): void {
+    const index = this.activeToasts.findIndex(item => item.element === toastElement);
+
+    if (index !== -1) {
+      const item = this.activeToasts[index];
+      clearTimeout(item.timeoutId);
+      this.activeToasts.splice(index, 1);
+
+      toastElement.classList.add('thecircle-toast-exit');
+      setTimeout(() => {
+        toastElement.remove();
+        this.updateToastPositions();
+      }, 200);
+    }
   }
 }
 

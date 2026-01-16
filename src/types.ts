@@ -25,7 +25,7 @@ export interface StorageData {
 }
 
 export const DEFAULT_CONFIG: MenuConfig = {
-  shortcut: 'Double+Tab',
+  shortcut: 'Double+Shift',
   theme: 'dark',
   preferredLanguage: 'zh-CN',
   apiProvider: 'groq',
