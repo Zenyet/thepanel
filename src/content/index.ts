@@ -150,18 +150,34 @@ class TheCircle {
 
     if (aiActions.includes(item.action)) {
       this.radialMenu.showResult(item.label, '', true);
-    }
 
-    const result = await this.menuActions.execute(item);
+      // Create streaming callback for typewriter effect
+      const onChunk = this.config.useStreaming
+        ? (chunk: string, fullText: string) => {
+            this.radialMenu.streamUpdate(chunk, fullText);
+          }
+        : undefined;
 
-    if (result.type === 'ai') {
-      this.radialMenu.updateResult(result.result || '');
-    } else if (result.type === 'error') {
-      this.radialMenu.showResult('错误', result.result || '未知错误');
-    } else if (result.type === 'success') {
-      this.showToast(result.result || '操作成功');
-    } else if (result.type === 'info') {
-      this.showToast(result.result || '');
+      const result = await this.menuActions.execute(item, onChunk);
+
+      if (result.type === 'error') {
+        this.radialMenu.showResult('错误', result.result || '未知错误');
+      }
+      // If streaming was used, the result is already displayed
+      // If not streaming, update with final result
+      else if (!this.config.useStreaming && result.type === 'ai') {
+        this.radialMenu.updateResult(result.result || '');
+      }
+    } else {
+      const result = await this.menuActions.execute(item);
+
+      if (result.type === 'error') {
+        this.radialMenu.showResult('错误', result.result || '未知错误');
+      } else if (result.type === 'success') {
+        this.showToast(result.result || '操作成功');
+      } else if (result.type === 'info') {
+        this.showToast(result.result || '');
+      }
     }
   }
 

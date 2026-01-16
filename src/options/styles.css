@@ -97,6 +97,61 @@ body {
   @apply underline;
 }
 
+/* Toggle Switch */
+.checkbox-group {
+  @apply mt-6 pt-5;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toggle-label {
+  @apply flex items-center justify-between cursor-pointer;
+}
+
+.toggle-label .toggle-text {
+  @apply text-sm font-medium;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.toggle-switch {
+  @apply relative inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  @apply opacity-0 w-0 h-0;
+}
+
+.toggle-slider {
+  @apply absolute inset-0 cursor-pointer rounded-full;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.25s ease;
+}
+
+.toggle-slider::before {
+  @apply absolute rounded-full;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: all 0.25s ease;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  @apply bg-blue-500;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
 /* Shortcut recorder */
 .shortcut-recorder {
   @apply flex items-center gap-4;

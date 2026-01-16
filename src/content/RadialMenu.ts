@@ -124,24 +124,68 @@ export class RadialMenu {
         contentEl.innerHTML = content;
       }
 
-      // Add copy button if not present
-      const actionsEl = this.resultPanel.querySelector('.thecircle-result-actions');
-      if (!actionsEl) {
-        const actions = document.createElement('div');
-        actions.className = 'thecircle-result-actions';
-        actions.innerHTML = '<button class="thecircle-copy-btn">复制</button>';
-        this.resultPanel.appendChild(actions);
+      this.ensureCopyButton(content);
+    }
+  }
 
-        const copyBtn = actions.querySelector('.thecircle-copy-btn');
-        copyBtn?.addEventListener('click', () => {
+  // Stream update for typewriter effect
+  public streamUpdate(chunk: string, fullText: string): void {
+    if (this.resultPanel) {
+      const contentEl = this.resultPanel.querySelector('.thecircle-result-content');
+      if (contentEl) {
+        contentEl.classList.remove('thecircle-loading');
+        // Use textContent for streaming to avoid HTML parsing issues, then format
+        contentEl.innerHTML = this.formatStreamContent(fullText);
+        // Auto scroll to bottom
+        contentEl.scrollTop = contentEl.scrollHeight;
+      }
+
+      this.ensureCopyButton(fullText);
+    }
+  }
+
+  private formatStreamContent(text: string): string {
+    // Simple markdown-like formatting
+    return text
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code>$1</code>');
+  }
+
+  private ensureCopyButton(content: string): void {
+    if (!this.resultPanel) return;
+
+    const actionsEl = this.resultPanel.querySelector('.thecircle-result-actions');
+    if (!actionsEl) {
+      const actions = document.createElement('div');
+      actions.className = 'thecircle-result-actions';
+      actions.innerHTML = '<button class="thecircle-copy-btn">复制</button>';
+      this.resultPanel.appendChild(actions);
+
+      const copyBtn = actions.querySelector('.thecircle-copy-btn');
+      copyBtn?.addEventListener('click', () => {
+        navigator.clipboard.writeText(content);
+        if (copyBtn) {
+          copyBtn.textContent = '已复制!';
+          setTimeout(() => {
+            if (copyBtn) copyBtn.textContent = '复制';
+          }, 1500);
+        }
+      });
+    } else {
+      // Update copy button to copy latest content
+      const copyBtn = actionsEl.querySelector('.thecircle-copy-btn');
+      if (copyBtn) {
+        const newBtn = copyBtn.cloneNode(true) as HTMLButtonElement;
+        newBtn.addEventListener('click', () => {
           navigator.clipboard.writeText(content);
-          if (copyBtn) {
-            copyBtn.textContent = '已复制!';
-            setTimeout(() => {
-              if (copyBtn) copyBtn.textContent = '复制';
-            }, 1500);
-          }
+          newBtn.textContent = '已复制!';
+          setTimeout(() => {
+            newBtn.textContent = '复制';
+          }, 1500);
         });
+        copyBtn.replaceWith(newBtn);
       }
     }
   }

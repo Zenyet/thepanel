@@ -11,8 +11,11 @@ export interface MenuConfig {
   shortcut: string;
   theme: 'dark' | 'light' | 'system';
   preferredLanguage: string;
-  apiProvider: 'groq' | 'openai' | 'anthropic' | 'gemini';
+  apiProvider: 'groq' | 'openai' | 'anthropic' | 'gemini' | 'custom';
   apiKey?: string;
+  customApiUrl?: string;
+  customModel?: string;
+  useStreaming: boolean;
 }
 
 export interface StorageData {
@@ -26,6 +29,7 @@ export const DEFAULT_CONFIG: MenuConfig = {
   theme: 'dark',
   preferredLanguage: 'zh-CN',
   apiProvider: 'groq',
+  useStreaming: true,
 };
 
 export const DEFAULT_SELECTION_MENU: MenuItem[] = [

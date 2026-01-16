@@ -24,12 +24,33 @@
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
             <option value="gemini">Google Gemini</option>
+            <option value="custom">自定义</option>
           </select>
+        </div>
+        <div class="form-group custom-provider-config" id="customApiUrlGroup" style="display: none;">
+          <label for="customApiUrl">API URL</label>
+          <input type="text" id="customApiUrl" placeholder="https://api.example.com/v1/chat/completions">
+          <p class="help-text">支持 OpenAI 兼容格式的 API 端点</p>
+        </div>
+        <div class="form-group custom-provider-config" id="customModelGroup" style="display: none;">
+          <label for="customModel">模型名称</label>
+          <input type="text" id="customModel" placeholder="gpt-4, llama-3.1-70b, etc.">
+          <p class="help-text">填写 API 支持的模型标识符</p>
         </div>
         <div class="form-group">
           <label for="apiKey">API Key (可选)</label>
           <input type="password" id="apiKey" placeholder="输入你的 API Key">
-          <p class="help-text">使用 Groq 免费服务无需配置 API Key</p>
+          <p class="help-text" id="apiKeyHelpText">使用 Groq 免费服务无需配置 API Key</p>
+        </div>
+        <div class="form-group checkbox-group">
+          <label class="toggle-label">
+            <span class="toggle-text">启用流式传输</span>
+            <span class="toggle-switch">
+              <input type="checkbox" id="useStreaming" checked>
+              <span class="toggle-slider"></span>
+            </span>
+          </label>
+          <p class="help-text">开启后 AI 响应将逐字显示，提供更流畅的体验</p>
         </div>
       </section>
 

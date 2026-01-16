@@ -1,4 +1,14 @@
 import { MenuItem, MenuConfig, Message } from '../types';
+import {
+  callAI,
+  getTranslatePrompt,
+  getSummarizePrompt,
+  getExplainPrompt,
+  getRewritePrompt,
+  getCodeExplainPrompt,
+  getSummarizePagePrompt,
+  OnChunkCallback,
+} from '../utils/ai';
 
 export class MenuActions {
   private selectedText: string = '';
@@ -16,18 +26,21 @@ export class MenuActions {
     this.config = config;
   }
 
-  public async execute(item: MenuItem): Promise<{ type: string; result?: string; url?: string }> {
+  public async execute(
+    item: MenuItem,
+    onChunk?: OnChunkCallback
+  ): Promise<{ type: string; result?: string; url?: string }> {
     switch (item.action) {
       case 'translate':
-        return this.handleTranslate();
+        return this.handleTranslate(onChunk);
       case 'summarize':
-        return this.handleSummarize();
+        return this.handleSummarize(onChunk);
       case 'explain':
-        return this.handleExplain();
+        return this.handleExplain(onChunk);
       case 'rewrite':
-        return this.handleRewrite();
+        return this.handleRewrite(onChunk);
       case 'codeExplain':
-        return this.handleCodeExplain();
+        return this.handleCodeExplain(onChunk);
       case 'search':
         return this.handleSearch();
       case 'copy':
@@ -37,7 +50,7 @@ export class MenuActions {
       case 'aiChat':
         return this.handleAIChat();
       case 'summarizePage':
-        return this.handleSummarizePage();
+        return this.handleSummarizePage(onChunk);
       case 'switchTab':
         return this.handleSwitchTab();
       case 'history':
@@ -55,61 +68,87 @@ export class MenuActions {
     }
   }
 
-  private async handleTranslate(): Promise<{ type: string; result?: string }> {
+  private async handleTranslate(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
     if (!this.selectedText) {
       return { type: 'error', result: '请先选择要翻译的文字' };
     }
 
-    return this.callAIAction('translate', this.selectedText);
+    return this.callAIAction('translate', this.selectedText, onChunk);
   }
 
-  private async handleSummarize(): Promise<{ type: string; result?: string }> {
+  private async handleSummarize(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
     if (!this.selectedText) {
       return { type: 'error', result: '请先选择要总结的文字' };
     }
 
-    return this.callAIAction('summarize', this.selectedText);
+    return this.callAIAction('summarize', this.selectedText, onChunk);
   }
 
-  private async handleExplain(): Promise<{ type: string; result?: string }> {
+  private async handleExplain(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
     if (!this.selectedText) {
       return { type: 'error', result: '请先选择要解释的文字' };
     }
 
-    return this.callAIAction('explain', this.selectedText);
+    return this.callAIAction('explain', this.selectedText, onChunk);
   }
 
-  private async handleRewrite(): Promise<{ type: string; result?: string }> {
+  private async handleRewrite(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
     if (!this.selectedText) {
       return { type: 'error', result: '请先选择要改写的文字' };
     }
 
-    return this.callAIAction('rewrite', this.selectedText);
+    return this.callAIAction('rewrite', this.selectedText, onChunk);
   }
 
-  private async handleCodeExplain(): Promise<{ type: string; result?: string }> {
+  private async handleCodeExplain(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
     if (!this.selectedText) {
       return { type: 'error', result: '请先选择要解释的代码' };
     }
 
-    return this.callAIAction('codeExplain', this.selectedText);
+    return this.callAIAction('codeExplain', this.selectedText, onChunk);
   }
 
-  private async handleSummarizePage(): Promise<{ type: string; result?: string }> {
-    return this.callAIAction('summarizePage', document.body.innerText.slice(0, 10000));
+  private async handleSummarizePage(onChunk?: OnChunkCallback): Promise<{ type: string; result?: string }> {
+    return this.callAIAction('summarizePage', document.body.innerText.slice(0, 10000), onChunk);
   }
 
-  private async callAIAction(action: string, text: string): Promise<{ type: string; result?: string }> {
+  private async callAIAction(
+    action: string,
+    text: string,
+    onChunk?: OnChunkCallback
+  ): Promise<{ type: string; result?: string }> {
+    let systemPrompt: string;
+
+    switch (action) {
+      case 'translate':
+        systemPrompt = getTranslatePrompt(this.config.preferredLanguage || 'zh-CN');
+        break;
+      case 'summarize':
+        systemPrompt = getSummarizePrompt();
+        break;
+      case 'explain':
+        systemPrompt = getExplainPrompt();
+        break;
+      case 'rewrite':
+        systemPrompt = getRewritePrompt();
+        break;
+      case 'codeExplain':
+        systemPrompt = getCodeExplainPrompt();
+        break;
+      case 'summarizePage':
+        systemPrompt = getSummarizePagePrompt();
+        break;
+      default:
+        return { type: 'error', result: 'Unknown AI action' };
+    }
+
     try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'AI_REQUEST',
-        payload: { action, text, config: this.config },
-      } as Message);
+      const response = await callAI(text, systemPrompt, this.config, onChunk);
 
-      if (response?.success) {
+      if (response.success) {
         return { type: 'ai', result: response.result };
       } else {
-        return { type: 'error', result: response?.error || 'AI 请求失败' };
+        return { type: 'error', result: response.error || 'AI 请求失败' };
       }
     } catch (error) {
       return { type: 'error', result: `请求失败: ${error}` };

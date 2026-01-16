@@ -5,6 +5,12 @@ import { DEFAULT_CONFIG, MenuConfig } from '../types';
 document.addEventListener('DOMContentLoaded', async () => {
   const apiProviderEl = document.getElementById('apiProvider') as HTMLSelectElement;
   const apiKeyEl = document.getElementById('apiKey') as HTMLInputElement;
+  const customApiUrlEl = document.getElementById('customApiUrl') as HTMLInputElement;
+  const customModelEl = document.getElementById('customModel') as HTMLInputElement;
+  const customApiUrlGroup = document.getElementById('customApiUrlGroup') as HTMLDivElement;
+  const customModelGroup = document.getElementById('customModelGroup') as HTMLDivElement;
+  const apiKeyHelpText = document.getElementById('apiKeyHelpText') as HTMLParagraphElement;
+  const useStreamingEl = document.getElementById('useStreaming') as HTMLInputElement;
   const preferredLanguageEl = document.getElementById('preferredLanguage') as HTMLSelectElement;
   const themeEl = document.getElementById('theme') as HTMLSelectElement;
   const saveBtn = document.getElementById('saveBtn');
@@ -22,10 +28,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   apiProviderEl.value = config.apiProvider;
   apiKeyEl.value = config.apiKey || '';
+  customApiUrlEl.value = config.customApiUrl || '';
+  customModelEl.value = config.customModel || '';
+  useStreamingEl.checked = config.useStreaming ?? true;
   preferredLanguageEl.value = config.preferredLanguage;
   themeEl.value = config.theme;
   currentShortcut = config.shortcut || 'Alt+Tab';
   updateShortcutDisplay(currentShortcut);
+  toggleCustomProviderUI(config.apiProvider);
+
+  // Handle provider change
+  apiProviderEl.addEventListener('change', () => {
+    toggleCustomProviderUI(apiProviderEl.value);
+  });
+
+  function toggleCustomProviderUI(provider: string) {
+    const isCustom = provider === 'custom';
+    customApiUrlGroup.style.display = isCustom ? 'block' : 'none';
+    customModelGroup.style.display = isCustom ? 'block' : 'none';
+
+    if (provider === 'groq') {
+      apiKeyHelpText.textContent = '使用 Groq 免费服务无需配置 API Key';
+    } else if (isCustom) {
+      apiKeyHelpText.textContent = '如果你的 API 需要认证，请填写 API Key';
+    } else {
+      apiKeyHelpText.textContent = `请填写你的 ${provider.toUpperCase()} API Key`;
+    }
+  }
 
   // Handle shortcut recording
   recordShortcutBtn?.addEventListener('click', () => {
@@ -97,9 +126,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Save settings
   saveBtn?.addEventListener('click', async () => {
+    const provider = apiProviderEl.value as MenuConfig['apiProvider'];
+
+    // Validate custom provider config
+    if (provider === 'custom') {
+      if (!customApiUrlEl.value) {
+        showToast('请填写自定义 API URL', 'error');
+        return;
+      }
+      if (!customModelEl.value) {
+        showToast('请填写模型名称', 'error');
+        return;
+      }
+      try {
+        new URL(customApiUrlEl.value);
+      } catch {
+        showToast('API URL 格式不正确', 'error');
+        return;
+      }
+    }
+
     const newConfig: Partial<MenuConfig> = {
-      apiProvider: apiProviderEl.value as MenuConfig['apiProvider'],
+      apiProvider: provider,
       apiKey: apiKeyEl.value || undefined,
+      customApiUrl: customApiUrlEl.value || undefined,
+      customModel: customModelEl.value || undefined,
+      useStreaming: useStreamingEl.checked,
       preferredLanguage: preferredLanguageEl.value,
       theme: themeEl.value as MenuConfig['theme'],
       shortcut: currentShortcut,
@@ -115,10 +167,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     apiProviderEl.value = DEFAULT_CONFIG.apiProvider;
     apiKeyEl.value = '';
+    customApiUrlEl.value = '';
+    customModelEl.value = '';
+    useStreamingEl.checked = DEFAULT_CONFIG.useStreaming;
     preferredLanguageEl.value = DEFAULT_CONFIG.preferredLanguage;
     themeEl.value = DEFAULT_CONFIG.theme;
     currentShortcut = DEFAULT_CONFIG.shortcut;
     updateShortcutDisplay(currentShortcut);
+    toggleCustomProviderUI(DEFAULT_CONFIG.apiProvider);
 
     showToast('已重置为默认设置', 'success');
   });
