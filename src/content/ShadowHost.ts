@@ -42,14 +42,7 @@ function createShadowHost(): void {
   // Create a container for UI elements that needs pointer events
   const container = document.createElement('div');
   container.id = 'thecircle-container';
-  container.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-  `;
+  container.className = 'fixed top-0 left-0 w-screen h-screen pointer-events-none';
   shadowRoot.appendChild(container);
 }
 
@@ -63,6 +56,16 @@ export function loadStyles(cssText: string): void {
   stylesLoaded = true;
 }
 
+export function loadStyleLink(href: string): void {
+  if (stylesLoaded || !shadowRoot) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  shadowRoot.insertBefore(link, shadowRoot.firstChild);
+  stylesLoaded = true;
+}
+
 // Create an element inside the shadow DOM
 export function createShadowElement(tagName: string, className?: string): HTMLElement {
   const root = getShadowRoot();
@@ -72,8 +75,10 @@ export function createShadowElement(tagName: string, className?: string): HTMLEl
   if (className) {
     element.className = className;
   }
-  // Enable pointer events for this element
-  element.style.pointerEvents = 'auto';
+  // Enable pointer events for this element by default if it's our component
+  if (className?.includes('thecircle')) {
+    element.style.pointerEvents = 'auto';
+  }
   container.appendChild(element);
 
   return element;

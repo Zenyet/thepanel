@@ -5,7 +5,7 @@ import { MenuItem, DEFAULT_CONFIG, DEFAULT_SELECTION_MENU, DEFAULT_GLOBAL_MENU, 
 import { getStorageData } from '../utils/storage';
 import { abortAllRequests } from '../utils/ai';
 import { getShadowRoot, loadStyles, appendToShadow, removeFromShadow } from './ShadowHost';
-import styles from './styles.css?inline';
+import './styles.css';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -36,13 +36,27 @@ class TheCircle {
     this.menuActions.setFlowCallbacks({
       onToast: (message, type) => this.showToast(message, type),
     });
+
+    this.radialMenu.setOnClose(() => {
+      // Ensure popover is hidden when result panel closes
+      this.selectionPopover.hide();
+    });
+
     this.init();
   }
 
   private async init(): Promise<void> {
     // Initialize Shadow DOM and load styles
     getShadowRoot();
-    loadStyles(styles);
+    
+    try {
+      const cssUrl = chrome.runtime.getURL('assets/content.css');
+      const response = await fetch(cssUrl);
+      const cssText = await response.text();
+      loadStyles(cssText);
+    } catch (error) {
+      console.error('The Circle: Failed to load styles', error);
+    }
 
     await this.loadConfig();
     this.setupKeyboardShortcut();
@@ -143,6 +157,9 @@ class TheCircle {
       return;
     }
 
+    // Hide the selection popover immediately
+    this.selectionPopover.hide();
+
     // Set the selected text for menu actions
     this.menuActions.setSelectedText(this.currentSelectedText);
 
@@ -175,7 +192,7 @@ class TheCircle {
 
     if (result.type === 'error') {
       this.radialMenu.showResult('错误', result.result || '未知错误');
-    } else if (!this.config.useStreaming && result.type === 'ai') {
+    } else if (result.type === 'ai') {
       this.radialMenu.updateResult(result.result || '');
     }
   }
@@ -296,9 +313,8 @@ class TheCircle {
       if (result.type === 'error') {
         this.radialMenu.showResult('错误', result.result || '未知错误');
       }
-      // If streaming was used, the result is already displayed
-      // If not streaming, update with final result
-      else if (!this.config.useStreaming && result.type === 'ai') {
+      // Update result for both streaming (to clear stop button) and non-streaming
+      else if (result.type === 'ai') {
         this.radialMenu.updateResult(result.result || '');
       }
     } else {
@@ -339,7 +355,17 @@ class TheCircle {
   }
 
   private showToast(message: string, type: ToastType = 'info'): void {
-    // Remove oldest toast if we've reached the limit
+    const toast = document.createElement('div');
+    const typeClasses = {
+      success: 'border-l-[3px] border-l-green-500/80',
+      error: 'border-l-[3px] border-l-red-500/80',
+      warning: 'border-l-[3px] border-l-yellow-500/80',
+      info: 'border-l-[3px] border-l-blue-500/80'
+    }[type];
+
+    toast.className = `fixed left-1/2 -translate-x-1/2 z-[2147483647] px-[20px] py-[12px] text-[14px] rounded-full bg-[#1e1e1e]/95 backdrop-blur-[20px] border border-white/15 text-white/95 font-sans shadow-[0_4px_16px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.1)] animate-[thecircle-toast-in_0.25s_ease-out] flex items-center gap-[10px] thecircle-toast ${typeClasses}`;
+
+    // Limit active toasts
     if (this.activeToasts.length >= this.MAX_TOASTS) {
       const oldest = this.activeToasts.shift();
       if (oldest) {
@@ -348,22 +374,38 @@ class TheCircle {
       }
     }
 
-    const toast = document.createElement('div');
-    toast.className = `thecircle-toast thecircle-toast-${type}`;
-    toast.innerHTML = `
-      <span class="thecircle-toast-icon">${this.getToastIcon(type)}</span>
-      <span class="thecircle-toast-message">${message}</span>
-    `;
+    // Set position based on stack
+    const index = this.activeToasts.length;
+    toast.style.bottom = `${24 + index * 50}px`;
+    toast.setAttribute('data-index', String(index));
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'w-[18px] h-[18px] flex items-center justify-center shrink-0 thecircle-toast-icon';
+    const iconColors = {
+      success: 'text-[#22c55e]',
+      error: 'text-[#ef4444]',
+      warning: 'text-[#eab308]',
+      info: 'text-[#3b82f6]'
+    }[type];
+    iconEl.classList.add(iconColors);
+
+    iconEl.innerHTML = this.getToastIcon(type);
+
+    const textEl = document.createElement('span');
+    textEl.textContent = message;
+
+    toast.appendChild(iconEl);
+    toast.appendChild(textEl);
 
     appendToShadow(toast);
 
-    // Update positions of all toasts
-    this.updateToastPositions();
-
-    // Create timeout for removal
     const timeoutId = window.setTimeout(() => {
-      this.removeToast(toast);
-    }, 2000);
+      toast.classList.add('animate-[thecircle-toast-out_0.2s_ease-out_forwards]', 'thecircle-toast-exit');
+      setTimeout(() => {
+        removeFromShadow(toast);
+        this.activeToasts = this.activeToasts.filter(t => t.element !== toast);
+      }, 200);
+    }, 3000);
 
     this.activeToasts.push({ element: toast, timeoutId });
   }

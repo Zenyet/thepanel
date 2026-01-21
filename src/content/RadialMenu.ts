@@ -17,6 +17,7 @@ export class RadialMenu {
   private radius: number = 120;
   private isLoading: boolean = false;
   private onStopCallback: (() => void) | null = null;
+  private onClose: (() => void) | null = null;
 
   constructor() {
     this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -104,6 +105,7 @@ export class RadialMenu {
         if (this.resultPanel) {
           removeFromShadow(this.resultPanel);
           this.resultPanel = null;
+          this.onClose?.();
         }
       }, 200);
     }
@@ -111,6 +113,10 @@ export class RadialMenu {
 
   public setOnStop(callback: () => void): void {
     this.onStopCallback = callback;
+  }
+
+  public setOnClose(callback: () => void): void {
+    this.onClose = callback;
   }
 
   public showResult(title: string, content: string, isLoading: boolean = false): void {
@@ -127,12 +133,6 @@ export class RadialMenu {
              <div class="thecircle-spinner"></div>
              <span class="thecircle-loading-text">正在思考...</span>
            </div>
-           <button class="thecircle-stop-btn" data-action="stop">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-               <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-             </svg>
-             终止
-           </button>
          </div>`
       : content;
 
@@ -146,7 +146,10 @@ export class RadialMenu {
           ${loadingContent}
         </div>
       </div>
-      ${!isLoading ? this.createCopyButtonHTML() : ''}
+      <div class="thecircle-result-actions">
+        ${isLoading ? this.createStopButtonHTML() : ''}
+        ${this.createCopyButtonHTML()}
+      </div>
     `;
 
     appendToShadow(this.resultPanel);
@@ -195,7 +198,9 @@ export class RadialMenu {
         abortAllRequests();
         this.isLoading = false;
         this.onStopCallback?.();
-        this.hideResultPanel();
+        // Just hide the stop button instead of closing panel
+        stopBtn.remove();
+        this.ensureFooterActions(false, content);
       });
     }
 
@@ -206,14 +211,23 @@ export class RadialMenu {
     this.setupScrollIndicators();
   }
 
+  private createStopButtonHTML(): string {
+    return `
+      <button class="thecircle-stop-btn" data-action="stop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+        </svg>
+        终止
+      </button>
+    `;
+  }
+
   private createCopyButtonHTML(): string {
     return `
-      <div class="thecircle-result-actions">
-        <button class="thecircle-copy-btn">
-          <span class="thecircle-copy-btn-icon">${this.getCopyIcon()}</span>
-          <span class="thecircle-copy-btn-text">复制</span>
-        </button>
-      </div>
+      <button class="thecircle-copy-btn">
+        <span class="thecircle-copy-btn-icon">${this.getCopyIcon()}</span>
+        <span class="thecircle-copy-btn-text">复制</span>
+      </button>
     `;
   }
 
@@ -286,10 +300,10 @@ export class RadialMenu {
     if (this.resultPanel) {
       const contentEl = this.resultPanel.querySelector('.thecircle-result-content');
       if (contentEl) {
-        contentEl.innerHTML = content;
+        contentEl.innerHTML = this.formatStreamContent(content);
       }
 
-      this.ensureCopyButton(content);
+      this.ensureFooterActions(false, content);
       this.setupScrollIndicators();
     }
   }
@@ -303,24 +317,11 @@ export class RadialMenu {
         // Check if still showing loading, replace with content + stop button
         if (contentEl.querySelector('.thecircle-loading-container')) {
           contentEl.innerHTML = `
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-              <button class="thecircle-stop-btn" data-action="stop">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-                </svg>
-                终止
-              </button>
-            </div>
             <div class="thecircle-stream-content"></div>
           `;
-          // Setup stop button
-          const stopBtn = contentEl.querySelector('[data-action="stop"]');
-          stopBtn?.addEventListener('click', () => {
-            abortAllRequests();
-            this.isLoading = false;
-            // Remove stop button
-            stopBtn.parentElement?.remove();
-          });
+          
+          // Ensure stop button is visible in footer
+          this.ensureFooterActions(true, fullText);
         }
 
         // Update stream content
@@ -331,11 +332,9 @@ export class RadialMenu {
           // Fallback if no stream content container
           contentEl.innerHTML = this.formatStreamContent(fullText);
         }
-        // Auto scroll to bottom
-        contentEl.scrollTop = contentEl.scrollHeight;
+        // Auto scroll removed as per user request
+        // contentEl.scrollTop = contentEl.scrollHeight;
       }
-
-      this.ensureCopyButton(fullText);
     }
   }
 
@@ -348,36 +347,56 @@ export class RadialMenu {
       .replace(/`(.*?)`/g, '<code>$1</code>');
   }
 
-  private ensureCopyButton(content: string): void {
+  private ensureFooterActions(isLoading: boolean, content: string): void {
     if (!this.resultPanel) return;
 
     const actionsEl = this.resultPanel.querySelector('.thecircle-result-actions');
-    if (!actionsEl) {
-      const actions = document.createElement('div');
-      actions.className = 'thecircle-result-actions';
-      actions.innerHTML = `
-        <button class="thecircle-copy-btn">
-          <span class="thecircle-copy-btn-icon">${this.getCopyIcon()}</span>
-          <span class="thecircle-copy-btn-text">复制</span>
-        </button>
-      `;
-      this.resultPanel.appendChild(actions);
+    if (!actionsEl) return;
 
-      const copyBtn = actions.querySelector('.thecircle-copy-btn');
-      copyBtn?.addEventListener('click', () => {
-        navigator.clipboard.writeText(content);
-        this.showCopyFeedback(copyBtn as HTMLButtonElement);
-      });
+    // Manage Stop button
+    let stopBtn = actionsEl.querySelector('[data-action="stop"]');
+    if (isLoading) {
+      if (!stopBtn) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = this.createStopButtonHTML();
+        stopBtn = tempDiv.firstElementChild;
+        if (stopBtn) {
+          actionsEl.insertBefore(stopBtn, actionsEl.firstChild);
+          stopBtn.addEventListener('click', () => {
+            abortAllRequests();
+            this.isLoading = false;
+            this.onStopCallback?.();
+            stopBtn?.remove();
+            this.ensureFooterActions(false, content);
+          });
+        }
+      }
     } else {
-      // Update copy button to copy latest content
-      const copyBtn = actionsEl.querySelector('.thecircle-copy-btn');
-      if (copyBtn) {
-        const newBtn = copyBtn.cloneNode(true) as HTMLButtonElement;
-        newBtn.addEventListener('click', () => {
+      if (stopBtn) {
+        stopBtn.remove();
+      }
+    }
+
+    // Manage Copy button
+    const copyBtn = actionsEl.querySelector('.thecircle-copy-btn');
+    if (copyBtn) {
+      // Update listener with latest content
+      const newBtn = copyBtn.cloneNode(true) as HTMLButtonElement;
+      newBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(content);
+        this.showCopyFeedback(newBtn);
+      });
+      copyBtn.replaceWith(newBtn);
+    } else {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = this.createCopyButtonHTML();
+      const newCopyBtn = tempDiv.firstElementChild;
+      if (newCopyBtn) {
+        actionsEl.appendChild(newCopyBtn);
+        newCopyBtn.addEventListener('click', () => {
           navigator.clipboard.writeText(content);
-          this.showCopyFeedback(newBtn);
+          this.showCopyFeedback(newCopyBtn as HTMLButtonElement);
         });
-        copyBtn.replaceWith(newBtn);
       }
     }
   }

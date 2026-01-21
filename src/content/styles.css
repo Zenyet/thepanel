@@ -3,26 +3,76 @@
 
 /* CSS Custom Properties for Liquid Glass - use :host for Shadow DOM */
 :host {
-  --glass-bg: rgba(255, 255, 255, 0.18);
-  --glass-bg-hover: rgba(255, 255, 255, 0.28);
-  --glass-border: rgba(255, 255, 255, 0.25);
+  /* Default Dark Mode */
+  --glass-bg: rgba(30, 30, 30, 0.85);
+  --glass-bg-hover: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.15);
   --glass-border-hover: rgba(255, 255, 255, 0.4);
-  --glass-shadow: rgba(0, 0, 0, 0.15);
+  --glass-shadow: rgba(0, 0, 0, 0.25);
   --glass-highlight: rgba(255, 255, 255, 0.5);
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.7);
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+  --button-bg: rgba(255, 255, 255, 0.12);
+  --button-border: rgba(255, 255, 255, 0.15);
+  --button-hover: rgba(255, 255, 255, 0.2);
+  --code-bg: rgba(0, 0, 0, 0.25);
+  --toast-bg: rgba(30, 30, 30, 0.95);
+  --spinner-track: rgba(255, 255, 255, 0.1);
+  --spinner-head: rgba(255, 255, 255, 0.7);
+  --skeleton-base: rgba(255, 255, 255, 0.1);
+  --skeleton-highlight: rgba(255, 255, 255, 0.2);
+  --separator-color: rgba(255, 255, 255, 0.1);
+  --header-bg: rgba(255, 255, 255, 0.03);
+  --preview-bg: rgba(0, 0, 0, 0.2);
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(255, 255, 255, 0.15);
+  --input-focus-bg: rgba(59, 130, 246, 0.1);
+  --secondary-btn-bg: rgba(255, 255, 255, 0.1);
+  --secondary-btn-border: rgba(255, 255, 255, 0.15);
+  --secondary-btn-hover: rgba(255, 255, 255, 0.15);
 }
 
-/* Also set on container for fallback */
+@media (prefers-color-scheme: light) {
+  :host {
+    /* Light Mode Liquid Glass */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-bg-hover: rgba(0, 0, 0, 0.05);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-border-hover: rgba(0, 0, 0, 0.2);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.8);
+    --text-primary: rgba(0, 0, 0, 0.85);
+    --text-secondary: rgba(0, 0, 0, 0.6);
+    --scrollbar-track: rgba(0, 0, 0, 0.05);
+    --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+    --button-bg: rgba(0, 0, 0, 0.05);
+    --button-border: rgba(0, 0, 0, 0.1);
+    --button-hover: rgba(0, 0, 0, 0.1);
+    --code-bg: rgba(0, 0, 0, 0.05);
+    --toast-bg: rgba(255, 255, 255, 0.95);
+    --spinner-track: rgba(0, 0, 0, 0.1);
+    --spinner-head: rgba(0, 0, 0, 0.6);
+    --skeleton-base: rgba(0, 0, 0, 0.05);
+    --skeleton-highlight: rgba(0, 0, 0, 0.1);
+    --separator-color: rgba(0, 0, 0, 0.08);
+    --header-bg: rgba(0, 0, 0, 0.02);
+    --preview-bg: rgba(0, 0, 0, 0.05);
+    --input-bg: rgba(0, 0, 0, 0.05);
+    --input-border: rgba(0, 0, 0, 0.1);
+    --input-focus-bg: rgba(59, 130, 246, 0.05);
+    --secondary-btn-bg: rgba(0, 0, 0, 0.05);
+    --secondary-btn-border: rgba(0, 0, 0, 0.1);
+    --secondary-btn-hover: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Also set on container for fallback - REMOVED to prevent overriding :host variables */
 #thecircle-container {
-  --glass-bg: rgba(255, 255, 255, 0.18);
-  --glass-bg-hover: rgba(255, 255, 255, 0.28);
-  --glass-border: rgba(255, 255, 255, 0.25);
-  --glass-border-hover: rgba(255, 255, 255, 0.4);
-  --glass-shadow: rgba(0, 0, 0, 0.15);
-  --glass-highlight: rgba(255, 255, 255, 0.5);
-  --text-primary: rgba(255, 255, 255, 0.95);
-  --text-secondary: rgba(255, 255, 255, 0.7);
+  /* Variables are inherited from :host, do not redefine them here */
 }
 
 /* Overlay */
@@ -89,12 +139,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--glass-bg);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--glass-border);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.12),
+    0 4px 24px var(--glass-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
   overflow: hidden;
   /* Default hidden, show only on item hover */
@@ -150,12 +200,12 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--glass-border);
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 4px 16px var(--glass-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.15s ease-out;
   /* Staggered entry animation */
@@ -202,11 +252,11 @@
 
 .thecircle-item:hover,
 .thecircle-item-selected {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
   transform: translate(var(--x, 0), var(--y, 0)) scale(1.15);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 8px 32px var(--glass-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -249,23 +299,24 @@
 .thecircle-result-panel {
   position: fixed;
   z-index: 2147483647;
-  min-width: 300px;
-  max-width: 450px;
-  max-height: 400px;
+  min-width: 280px;
+  max-width: 400px;
+  max-height: 350px;
   display: flex;
   flex-direction: column;
-  background: rgba(30, 30, 30, 0.85);
+  background: var(--glass-bg);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.25),
+    0 8px 32px var(--glass-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   animation: thecircle-slide-in 0.25s ease-out;
   overflow: hidden;
+  color: var(--text-primary);
 }
 
 /* Panel top highlight */
@@ -279,7 +330,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.3) 50%,
+    var(--glass-border-hover) 50%,
     transparent 100%
   );
   pointer-events: none;
@@ -302,8 +353,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--separator-color);
+  background: var(--header-bg);
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -316,7 +367,7 @@
 }
 
 .thecircle-result-close {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--button-bg);
   border: none;
   font-size: 18px;
   cursor: pointer;
@@ -346,28 +397,41 @@
 }
 
 /* Scrollbar beautification */
+.thecircle-result-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
 .thecircle-result-content::-webkit-scrollbar {
-  width: 8px;
+  width: 8px !important;
+  height: 8px !important;
+  background-color: transparent !important;
 }
 
 .thecircle-result-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--scrollbar-track) !important;
   border-radius: 4px;
 }
 
 .thecircle-result-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--scrollbar-thumb) !important;
   border-radius: 4px;
   transition: background 0.2s ease;
+  border: 1px solid transparent;
+  background-clip: content-box;
 }
 
 .thecircle-result-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background-color: var(--scrollbar-thumb-hover) !important;
+}
+
+.thecircle-result-content::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 
 /* Code block styling */
 .thecircle-result-content code {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: "SF Mono", Monaco, "Cascadia Code", "Consolas", monospace;
@@ -375,12 +439,12 @@
 }
 
 .thecircle-result-content pre {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--code-bg);
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
   margin: 8px 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
 }
 
 .thecircle-result-content pre code {
@@ -450,8 +514,8 @@
   width: 32px;
   height: 32px;
   border-radius: 9999px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.7);
+  border: 3px solid var(--spinner-track);
+  border-top-color: var(--spinner-head);
   animation: thecircle-spin 0.8s linear infinite;
 }
 
@@ -465,9 +529,9 @@
 .thecircle-skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.1) 25%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 75%
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
   animation: thecircle-shimmer 1.5s infinite;
@@ -498,7 +562,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--separator-color);
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -509,10 +573,10 @@
   color: var(--text-primary);
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
@@ -520,8 +584,8 @@
 }
 
 .thecircle-copy-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--button-hover);
+  border-color: var(--glass-border-hover);
 }
 
 .thecircle-copy-btn.copied {
@@ -530,11 +594,36 @@
 }
 
 .thecircle-copy-btn-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.thecircle-stop-btn {
+  border: none;
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thecircle-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.thecircle-stop-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Toast notification - Dark solid background for visibility */
@@ -546,15 +635,15 @@
   padding: 12px 20px;
   font-size: 14px;
   border-radius: 9999px;
-  background: rgba(30, 30, 30, 0.95);
+  background: var(--toast-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.25),
+    0 4px 16px var(--glass-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: thecircle-toast-in 0.25s ease-out;
   display: flex;
@@ -705,25 +794,25 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(30, 30, 30, 0.9);
+  background: var(--toast-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border);
   border-radius: 9999px;
   color: var(--text-primary);
   font-size: 14px;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px var(--glass-shadow);
   transition: opacity 0.2s ease;
 }
 
 .thecircle-screenshot-hint-divider {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-secondary);
 }
 
 .thecircle-screenshot-hint-key {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--button-bg);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -742,8 +831,8 @@
   position: fixed;
   transform: translateX(-50%);
   padding: 4px 10px;
-  background: rgba(30, 30, 30, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--toast-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 4px;
   color: var(--text-primary);
   font-size: 12px;
@@ -759,12 +848,12 @@
   display: flex;
   gap: 8px;
   padding: 8px;
-  background: rgba(30, 30, 30, 0.95);
+  background: var(--toast-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px var(--glass-shadow);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   animation: thecircle-fade-in 0.15s ease-out;
@@ -776,8 +865,8 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
@@ -787,8 +876,8 @@
 }
 
 .thecircle-screenshot-toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--button-hover);
+  border-color: var(--glass-border-hover);
 }
 
 .thecircle-screenshot-toolbar-btn-primary {
@@ -808,16 +897,17 @@
   z-index: 2147483647;
   min-width: 320px;
   max-width: 500px;
-  background: rgba(30, 30, 30, 0.95);
+  background: var(--glass-bg);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 40px var(--glass-shadow);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   animation: thecircle-slide-in 0.25s ease-out;
   overflow: hidden;
+  color: var(--text-primary);
 }
 
 .thecircle-screenshot-panel-exit {
@@ -829,8 +919,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--separator-color);
+  background: var(--header-bg);
 }
 
 .thecircle-screenshot-title {
@@ -840,7 +930,7 @@
 }
 
 .thecircle-screenshot-close {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--button-bg);
   border: none;
   cursor: pointer;
   padding: 0;
@@ -866,7 +956,7 @@
 
 .thecircle-screenshot-preview {
   padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--preview-bg);
 }
 
 .thecircle-screenshot-preview img {
@@ -879,7 +969,7 @@
 
 .thecircle-screenshot-actions {
   padding: 16px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--separator-color);
 }
 
 .thecircle-screenshot-btn-group {
@@ -917,13 +1007,13 @@
 }
 
 .thecircle-screenshot-btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--secondary-btn-bg);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--secondary-btn-border);
 }
 
 .thecircle-screenshot-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--secondary-btn-hover);
 }
 
 /* Screenshot Input Area */
@@ -936,8 +1026,8 @@
 .thecircle-screenshot-input {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 14px;
@@ -948,11 +1038,11 @@
 
 .thecircle-screenshot-input:focus {
   border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--input-focus-bg);
 }
 
 .thecircle-screenshot-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-secondary);
 }
 
 .thecircle-screenshot-input-actions {
@@ -989,7 +1079,7 @@
   max-height: 200px;
   overflow-y: auto;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--preview-bg);
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.6;
@@ -998,20 +1088,21 @@
 
 .thecircle-screenshot-result-content::-webkit-scrollbar {
   width: 6px;
+  background-color: transparent;
 }
 
 .thecircle-screenshot-result-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-track);
   border-radius: 3px;
 }
 
 .thecircle-screenshot-result-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .thecircle-screenshot-result-content code {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: "SF Mono", Monaco, "Cascadia Code", "Consolas", monospace;
@@ -1095,96 +1186,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 更紧凑的尺寸 */
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  /* Liquid Glass: 半透明背景，带轻微白色调 */
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.18) 100%
-  );
-  /* 更强的背景模糊效果 */
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  /* 高光边框：顶部更亮，底部较暗 */
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-top-color: rgba(255, 255, 255, 0.5);
-  border-bottom-color: rgba(255, 255, 255, 0.15);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
   border-radius: 9999px;
-  /* 多层阴影：外阴影 + 内发光 */
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.4),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  animation: thecircle-popover-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* 平滑过渡 */
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  cursor: pointer;
+  box-shadow: 0 4px 16px var(--glass-shadow);
+  padding: 4px;
+  animation: thecircle-pop-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.2s ease;
 }
-
-/* 整个 popover 的 hover 效果 */
-.thecircle-selection-popover:hover {
-  transform: scale(1.1);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.28) 100%
-  );
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.25),
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.5),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.05);
-}
-
-/* 整个 popover 的 active 效果 */
-.thecircle-selection-popover:active {
-  transform: scale(0.95);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.12) 100%
-  );
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.2),
-    0 2px 6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.08);
-}
-
-/* Arrow removed - popover is now circular */
 
 .thecircle-selection-popover-exit {
-  animation: thecircle-popover-out 0.15s ease-out forwards;
+  animation: thecircle-pop-out 0.15s ease-out forwards;
 }
 
-@keyframes thecircle-popover-in {
+@keyframes thecircle-pop-in {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.8) translateY(10px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
-@keyframes thecircle-popover-out {
+@keyframes thecircle-pop-out {
   from {
     opacity: 1;
     transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.8);
   }
 }
 
