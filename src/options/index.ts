@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function startRecording() {
     isRecording = true;
     recordShortcutBtn!.textContent = '取消录制';
-    recordShortcutBtn!.classList.add('recording');
-    shortcutDisplayEl!.classList.add('recording');
+    recordShortcutBtn!.classList.add('bg-red-500/20', 'border-red-500', 'text-red-400');
+    shortcutDisplayEl!.classList.add('border-2', 'border-blue-500', 'bg-blue-500/10', 'animate-pulse');
     shortcutHelpText!.textContent = '请按下快捷键组合... (ESC 取消)';
     document.addEventListener('keydown', handleShortcutKeyDown);
   }
@@ -135,8 +135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function stopRecording() {
     isRecording = false;
     recordShortcutBtn!.textContent = '录制快捷键';
-    recordShortcutBtn!.classList.remove('recording');
-    shortcutDisplayEl!.classList.remove('recording');
+    recordShortcutBtn!.classList.remove('bg-red-500/20', 'border-red-500', 'text-red-400');
+    shortcutDisplayEl!.classList.remove('border-2', 'border-blue-500', 'bg-blue-500/10', 'animate-pulse');
     shortcutHelpText!.textContent = '点击"录制快捷键"按钮，然后按下你想要的快捷键组合';
     document.removeEventListener('keydown', handleShortcutKeyDown);
   }
@@ -176,8 +176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (shortcutDisplayEl) {
       const keys = shortcut.split('+');
       shortcutDisplayEl.innerHTML = keys.map((key, index) => {
-        const separator = index < keys.length - 1 ? '<span class="plus">+</span>' : '';
-        return `<span class="key">${key}</span>${separator}`;
+        const separator = index < keys.length - 1 ? '<span class="text-base text-white/50">+</span>' : '';
+        return `<span class="px-4 py-2 rounded-md text-sm font-semibold bg-white/10 border border-white/20">${key}</span>${separator}`;
       }).join('');
     }
   }
@@ -293,29 +293,29 @@ function renderMenuList(listId: string, items: MenuItem[]) {
   list.innerHTML = sortedItems.map(item => {
     const isCustom = (item as CustomMenuItem).isCustom;
     return `
-      <div class="menu-item-config" draggable="true" data-id="${item.id}">
-        <span class="drag-handle">⋮⋮</span>
-        <span class="item-icon">${item.customIcon || item.icon}</span>
-        <span class="item-label">${item.customLabel || item.label}</span>
-        <span class="item-action">${item.action}</span>
-        <div class="item-actions">
+      <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 transition-all duration-150 cursor-grab hover:bg-white/10 hover:border-white/15 menu-item-config" draggable="true" data-id="${item.id}">
+        <span class="text-sm cursor-grab text-white/30 select-none tracking-widest hover:text-white/50 drag-handle">⋮⋮</span>
+        <span class="flex items-center justify-center w-[28px] h-[28px] rounded-md bg-white/10 text-white/80 item-icon">${item.customIcon || item.icon}</span>
+        <span class="flex-1 text-sm font-medium text-white/90 item-label">${item.customLabel || item.label}</span>
+        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-white/50 item-action">${item.action}</span>
+        <div class="flex items-center gap-2 item-actions">
           ${isCustom ? `
-            <button class="item-btn edit" data-id="${item.id}" title="编辑">
+            <button class="p-1.5 rounded cursor-pointer border-none bg-transparent text-white/40 transition-all duration-150 hover:bg-white/10 hover:text-white/80 item-btn edit" data-id="${item.id}" title="编辑">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
               </svg>
             </button>
-            <button class="item-btn delete" data-id="${item.id}" title="删除">
+            <button class="p-1.5 rounded cursor-pointer border-none bg-transparent text-white/40 transition-all duration-150 hover:bg-red-500/20 hover:text-red-500 item-btn delete" data-id="${item.id}" title="删除">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
               </svg>
             </button>
           ` : ''}
-          <label class="toggle-switch small">
-            <input type="checkbox" ${item.enabled ? 'checked' : ''} data-id="${item.id}">
-            <span class="toggle-slider"></span>
+          <label class="relative inline-block w-[36px] h-[20px] toggle-switch small">
+            <input type="checkbox" ${item.enabled ? 'checked' : ''} data-id="${item.id}" class="opacity-0 w-0 h-0 peer sr-only">
+            <span class="absolute inset-0 cursor-pointer rounded-full bg-white/15 transition-all duration-250 before:absolute before:rounded-full before:h-[14px] before:w-[14px] before:left-[3px] before:bottom-[3px] before:bg-white/70 before:transition-all before:duration-250 peer-checked:bg-blue-500 peer-checked:before:translate-x-[16px] peer-checked:before:bg-white toggle-slider"></span>
           </label>
         </div>
       </div>
@@ -341,12 +341,12 @@ function setupDragAndDrop(listId: string) {
 
     el.addEventListener('dragstart', (e) => {
       draggedItem = el;
-      el.classList.add('dragging');
+      el.classList.add('opacity-50', 'cursor-grabbing', 'dragging');
       (e as DragEvent).dataTransfer!.effectAllowed = 'move';
     });
 
     el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
+      el.classList.remove('opacity-50', 'cursor-grabbing', 'dragging');
       draggedItem = null;
       // Update order based on DOM position
       updateOrderFromDOM(listId);
@@ -355,16 +355,16 @@ function setupDragAndDrop(listId: string) {
     el.addEventListener('dragover', (e) => {
       e.preventDefault();
       (e as DragEvent).dataTransfer!.dropEffect = 'move';
-      el.classList.add('drag-over');
+      el.classList.add('border-blue-500/50', 'bg-blue-500/10', 'drag-over');
     });
 
     el.addEventListener('dragleave', () => {
-      el.classList.remove('drag-over');
+      el.classList.remove('border-blue-500/50', 'bg-blue-500/10', 'drag-over');
     });
 
     el.addEventListener('drop', (e) => {
       e.preventDefault();
-      el.classList.remove('drag-over');
+      el.classList.remove('border-blue-500/50', 'bg-blue-500/10', 'drag-over');
       if (draggedItem && draggedItem !== el) {
         const rect = el.getBoundingClientRect();
         const midY = rect.top + rect.height / 2;
@@ -541,7 +541,7 @@ function renderIconPicker() {
 
   const iconNames = Object.keys(icons) as IconName[];
   picker.innerHTML = iconNames.map(name => `
-    <div class="icon-option" data-icon="${name}" title="${name}">
+    <div class="flex items-center justify-center w-9 h-9 rounded-lg cursor-pointer bg-white/5 border-2 border-transparent text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white/90 icon-option" data-icon="${name}" title="${name}">
       ${icons[name]}
     </div>
   `).join('');
@@ -549,8 +549,8 @@ function renderIconPicker() {
   // Setup click handlers
   picker.querySelectorAll('.icon-option').forEach(option => {
     option.addEventListener('click', () => {
-      picker.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
-      option.classList.add('selected');
+      picker.querySelectorAll('.icon-option').forEach(o => o.classList.remove('border-blue-500', 'bg-blue-500/20', 'text-white', 'selected'));
+      option.classList.add('border-blue-500', 'bg-blue-500/20', 'text-white', 'selected');
       (document.getElementById('selectedIcon') as HTMLInputElement).value = (option as HTMLElement).dataset.icon || '';
     });
   });
@@ -575,14 +575,20 @@ function openModal(title: string, item?: CustomMenuItem) {
     const iconName = Object.entries(icons).find(([_, svg]) => svg === item.icon)?.[0] || '';
     selectedIconInput.value = iconName;
     document.querySelectorAll('.icon-option').forEach(o => {
-      o.classList.toggle('selected', (o as HTMLElement).dataset.icon === iconName);
+      const isSelected = (o as HTMLElement).dataset.icon === iconName;
+      o.classList.toggle('selected', isSelected);
+      if (isSelected) {
+        o.classList.add('border-blue-500', 'bg-blue-500/20', 'text-white');
+      } else {
+        o.classList.remove('border-blue-500', 'bg-blue-500/20', 'text-white');
+      }
     });
     labelInput.value = item.label;
     actionSelect.value = item.action;
     promptTextarea.value = item.customPrompt || '';
   } else {
     selectedIconInput.value = '';
-    document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('border-blue-500', 'bg-blue-500/20', 'text-white', 'selected'));
     labelInput.value = '';
     actionSelect.value = 'customAI';
     promptTextarea.value = '';
@@ -606,10 +612,11 @@ function showToast(message: string, type: 'success' | 'error' = 'success'): void
   const toast = document.getElementById('toast');
   if (toast) {
     toast.textContent = message;
-    toast.className = `toast show ${type}`;
+    const typeClasses = type === 'success' ? 'border-green-500/50' : 'border-red-500/50';
+    toast.className = `fixed bottom-6 left-1/2 px-5 py-3 text-sm rounded-lg pointer-events-none -translate-x-1/2 bg-[#1e1e1e]/95 border text-white/90 shadow-lg transition-all duration-250 backdrop-blur-sm z-[2000] opacity-100 translate-y-0 ${typeClasses}`;
 
     setTimeout(() => {
-      toast.classList.remove('show');
+      toast.className = 'fixed bottom-6 left-1/2 px-5 py-3 text-sm rounded-lg pointer-events-none -translate-x-1/2 translate-y-[100px] bg-[#1e1e1e]/95 border border-white/15 text-white/90 shadow-lg opacity-0 transition-all duration-250 backdrop-blur-sm z-[2000]';
     }, 2500);
   }
 }

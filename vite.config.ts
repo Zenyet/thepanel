@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { copyFileSync, mkdirSync, existsSync } from 'fs';
 import { build } from 'vite';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function chromeExtensionPlugin() {
   return {
@@ -11,32 +15,8 @@ function chromeExtensionPlugin() {
 
       // Build content script separately as IIFE
       await build({
-        configFile: false,
-        build: {
-          outDir: 'dist',
-          emptyOutDir: false,
-          lib: {
-            entry: resolve(__dirname, 'src/content/index.ts'),
-            name: 'TheCircle',
-            formats: ['iife'],
-            fileName: () => 'content.js',
-          },
-          rollupOptions: {
-            output: {
-              inlineDynamicImports: true,
-              assetFileNames: 'assets/content[extname]',
-            },
-          },
-        },
+        configFile: resolve(__dirname, 'vite.content.config.ts'),
       });
-
-      // Move style.css to assets/content.css if it exists
-      const styleCss = resolve(distDir, 'style.css');
-      const contentCss = resolve(distDir, 'assets/content.css');
-      if (existsSync(styleCss)) {
-        copyFileSync(styleCss, contentCss);
-        unlinkSync(styleCss);
-      }
 
       // Copy manifest.json
       copyFileSync(
@@ -58,59 +38,26 @@ function chromeExtensionPlugin() {
         }
       });
 
-      // Create popup directory and copy files
-      const popupDir = resolve(distDir, 'popup');
-      if (!existsSync(popupDir)) {
-        mkdirSync(popupDir, { recursive: true });
-      }
-      const popupHtml = readFileSync(resolve(__dirname, 'src/popup/index.html'), 'utf-8');
-      writeFileSync(resolve(popupDir, 'index.html'), popupHtml);
-
-      // Copy popup CSS (index.css is the popup CSS based on build order)
-      const popupCssSrc = resolve(distDir, 'assets/index.css');
-      if (existsSync(popupCssSrc)) {
-        copyFileSync(popupCssSrc, resolve(popupDir, 'styles.css'));
-      }
-
-      // Create options directory and copy files
-      const optionsDir = resolve(distDir, 'options');
-      if (!existsSync(optionsDir)) {
-        mkdirSync(optionsDir, { recursive: true });
-      }
-      const optionsHtml = readFileSync(resolve(__dirname, 'src/options/index.html'), 'utf-8');
-      writeFileSync(resolve(optionsDir, 'index.html'), optionsHtml);
-
-      // Copy options CSS (index2.css is the options CSS based on build order)
-      const optionsCssSrc = resolve(distDir, 'assets/index2.css');
-      if (existsSync(optionsCssSrc)) {
-        copyFileSync(optionsCssSrc, resolve(optionsDir, 'styles.css'));
-      }
-
       console.log('Chrome extension files copied!');
     },
   };
 }
 
 export default defineConfig({
+  root: 'src',
   build: {
-    outDir: 'dist',
+    outDir: '../dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
-        'popup/index': resolve(__dirname, 'src/popup/index.ts'),
-        'options/index': resolve(__dirname, 'src/options/index.ts'),
+        'popup/index': resolve(__dirname, 'src/popup/index.html'),
+        'options/index': resolve(__dirname, 'src/options/index.html'),
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name].js',
-        assetFileNames: (assetInfo) => {
-          // Route CSS to correct directories
-          if (assetInfo.name?.endsWith('.css')) {
-            return 'assets/[name][extname]';
-          }
-          return 'assets/[name][extname]';
-        },
+        assetFileNames: 'assets/[name].[ext]',
       },
     },
   },

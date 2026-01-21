@@ -61,7 +61,7 @@ function updateShortcutHint(shortcut: string): void {
 
   const parts = shortcut.split('+');
   container.innerHTML = parts
-    .map(part => `<span class="key">${part}</span>`)
-    .join('<span class="plus">+</span>') +
-    '<span class="hint-text">呼出菜单</span>';
+    .map(part => `<span class="px-2.5 py-1 rounded text-sm font-medium bg-white/10 border border-white/20">${part}</span>`)
+    .join('<span class="text-sm text-white/50">+</span>') +
+    '<span class="ml-2 text-sm text-white/70">呼出菜单</span>';
 }
