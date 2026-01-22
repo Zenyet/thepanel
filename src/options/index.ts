@@ -10,6 +10,10 @@ let globalMenuItems: MenuItem[] = [];
 let editingItemId: string | null = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Inject logo
+  const logoEl = document.getElementById('app-logo');
+  if (logoEl) logoEl.innerHTML = icons.logo;
+
   const apiProviderEl = document.getElementById('apiProvider') as HTMLSelectElement;
   const apiKeyEl = document.getElementById('apiKey') as HTMLInputElement;
   const customApiUrlEl = document.getElementById('customApiUrl') as HTMLInputElement;
