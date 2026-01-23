@@ -32,6 +32,7 @@ export interface MenuConfig {
   shortcut: string;
   theme: 'dark' | 'light' | 'system';
   preferredLanguage: string;
+  summaryLanguage: string;
   apiProvider: 'groq' | 'openai' | 'anthropic' | 'gemini' | 'custom';
   apiKey?: string;
   customApiUrl?: string;
@@ -60,8 +61,9 @@ export const DEFAULT_SCREENSHOT_CONFIG: ScreenshotConfig = {
 
 export const DEFAULT_CONFIG: MenuConfig = {
   shortcut: 'Double+Shift',
-  theme: 'light',
+  theme: 'system',
   preferredLanguage: 'zh-CN',
+  summaryLanguage: 'auto',
   apiProvider: 'groq',
   useStreaming: true,
   screenshot: DEFAULT_SCREENSHOT_CONFIG,
@@ -75,6 +77,8 @@ export const DEFAULT_SELECTION_MENU: MenuItem[] = [
   { id: 'rewrite', icon: icons.rewrite, label: '改写', action: 'rewrite', enabled: true, order: 3 },
   { id: 'search', icon: icons.search, label: '搜索', action: 'search', enabled: true, order: 4 },
   { id: 'copy', icon: icons.copy, label: '复制', action: 'copy', enabled: true, order: 5 },
+  { id: 'sendToAI', icon: icons.sendToAI, label: '发送到 AI', action: 'sendToAI', enabled: true, order: 6 },
+  { id: 'codeExplain', icon: icons.codeExplain, label: '代码解释', action: 'codeExplain', enabled: true, order: 7 },
   { id: 'sendToAI', icon: icons.sendToAI, label: '发送到 AI', action: 'sendToAI', enabled: true, order: 6 },
   { id: 'codeExplain', icon: icons.codeExplain, label: '代码解释', action: 'codeExplain', enabled: true, order: 7 },
 ];

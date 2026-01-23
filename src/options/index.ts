@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const apiKeyHelpText = document.getElementById('apiKeyHelpText') as HTMLParagraphElement;
   const useStreamingEl = document.getElementById('useStreaming') as HTMLInputElement;
   const preferredLanguageEl = document.getElementById('preferredLanguage') as HTMLSelectElement;
+  const summaryLanguageEl = document.getElementById('summaryLanguage') as HTMLSelectElement;
   const popoverPositionEl = document.getElementById('popoverPosition') as HTMLSelectElement;
   const themeEl = document.getElementById('theme') as HTMLSelectElement;
   const saveBtn = document.getElementById('saveBtn');
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   customModelEl.value = config.customModel || '';
   useStreamingEl.checked = config.useStreaming ?? true;
   preferredLanguageEl.value = config.preferredLanguage;
+  summaryLanguageEl.value = config.summaryLanguage || 'auto';
   popoverPositionEl.value = config.popoverPosition || 'above';
   themeEl.value = config.theme;
   currentShortcut = config.shortcut || 'Alt+Tab';
@@ -230,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       customModel: customModelEl.value || undefined,
       useStreaming: useStreamingEl.checked,
       preferredLanguage: preferredLanguageEl.value,
+      summaryLanguage: summaryLanguageEl.value,
       popoverPosition: popoverPositionEl.value as 'above' | 'below',
       theme: themeEl.value as MenuConfig['theme'],
       shortcut: currentShortcut,
@@ -253,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     customModelEl.value = '';
     useStreamingEl.checked = DEFAULT_CONFIG.useStreaming;
     preferredLanguageEl.value = DEFAULT_CONFIG.preferredLanguage;
+    summaryLanguageEl.value = DEFAULT_CONFIG.summaryLanguage;
     popoverPositionEl.value = DEFAULT_CONFIG.popoverPosition || 'above';
     themeEl.value = DEFAULT_CONFIG.theme;
     applyTheme(DEFAULT_CONFIG.theme);
