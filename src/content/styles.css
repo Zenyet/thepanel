@@ -331,7 +331,7 @@
 .thecircle-result-panel {
   position: fixed;
   z-index: 2147483647;
-  min-width: 260px;
+  min-width: 360px;
   max-width: 360px;
   max-height: 320px;
   display: flex;
@@ -353,6 +353,7 @@
 }
 
 .thecircle-result-panel.comparison-mode {
+  min-width: 600px;
   max-width: 600px;
 }
 
@@ -1123,8 +1124,8 @@
 }
 
 .thecircle-selection-popover-btn {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
   border: none;
   background: transparent;
@@ -1134,7 +1135,6 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
-  padding: 6px;
 }
 
 .thecircle-selection-popover-btn:hover {
