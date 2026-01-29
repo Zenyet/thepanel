@@ -107,14 +107,15 @@ const SCREENSHOT_STYLES = `
   position: fixed;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
-  padding: 8px;
-  background: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   animation: thecircle-ss-fade-in 0.15s ease-out;
   z-index: 2147483647;
@@ -122,29 +123,33 @@ const SCREENSHOT_STYLES = `
 .thecircle-screenshot-toolbar-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
   color: rgba(255, 255, 255, 0.95);
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
+.thecircle-screenshot-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+}
 .thecircle-screenshot-toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 .thecircle-screenshot-toolbar-btn-primary {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
 }
 .thecircle-screenshot-toolbar-btn-primary:hover {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.6);
 }
 `;
 
@@ -271,25 +276,22 @@ export class ScreenshotSelector {
     }
 
     this.toolbar.innerHTML = `
-      <button class="thecircle-screenshot-toolbar-btn thecircle-screenshot-toolbar-btn-primary" data-action="confirm">
+      <button class="thecircle-screenshot-toolbar-btn thecircle-screenshot-toolbar-btn-primary" data-action="confirm" title="确认">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        确认
       </button>
-      <button class="thecircle-screenshot-toolbar-btn" data-action="reselect">
+      <button class="thecircle-screenshot-toolbar-btn" data-action="reselect" title="重选">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M1 4v6h6"></path>
           <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
         </svg>
-        重选
       </button>
-      <button class="thecircle-screenshot-toolbar-btn" data-action="cancel">
+      <button class="thecircle-screenshot-toolbar-btn" data-action="cancel" title="取消">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
-        取消
       </button>
     `;
 

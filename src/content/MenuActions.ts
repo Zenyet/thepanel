@@ -14,7 +14,11 @@ import {
   OnChunkCallback,
 } from '../utils/ai';
 import { ScreenshotSelector, SelectionArea } from './ScreenshotSelector';
-import { ScreenshotPanel } from './ScreenshotPanel';
+import { ContextChatPanel } from './ContextChatPanel';
+import { SmartClipPanel } from './SmartClipPanel';
+import { FocusReadMode } from './FocusReadMode';
+import { BrowseTrailPanel } from './BrowseTrailPanel';
+import type { CommandPalette } from './CommandPalette';
 
 export interface ScreenshotFlowCallbacks {
   onToast: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -31,12 +35,20 @@ export class MenuActions {
   private selectedText: string = '';
   private config: MenuConfig;
   private screenshotSelector: ScreenshotSelector | null = null;
-  private screenshotPanel: ScreenshotPanel | null = null;
+  private commandPalette: CommandPalette | null = null;
   private currentScreenshotDataUrl: string = '';
   private flowCallbacks: ScreenshotFlowCallbacks | null = null;
+  private contextChatPanel: ContextChatPanel | null = null;
+  private smartClipPanel: SmartClipPanel | null = null;
+  private focusReadMode: FocusReadMode | null = null;
+  private browseTrailPanel: BrowseTrailPanel | null = null;
 
   constructor(config: MenuConfig) {
     this.config = config;
+  }
+
+  public setCommandPalette(palette: CommandPalette): void {
+    this.commandPalette = palette;
   }
 
   public setSelectedText(text: string): void {
@@ -77,22 +89,18 @@ export class MenuActions {
         return this.handleAIChat();
       case 'summarizePage':
         return this.handleSummarizePage(onChunk, options);
-      case 'askPage':
-        return this.handleAskPage(onChunk, options);
-      case 'rewritePage':
-        return this.handleRewritePage(onChunk, options);
-      case 'notesPage':
-        return this.handleNotesPage(onChunk, options);
+      case 'contextChat':
+        return this.handleContextChat();
+      case 'smartClip':
+        return this.handleSmartClip();
+      case 'focusRead':
+        return this.handleFocusRead();
+      case 'browseTrail':
+        return this.handleBrowseTrail();
       case 'switchTab':
         return this.handleSwitchTab();
-      case 'history':
-        return this.handleHistory();
       case 'screenshot':
         return this.handleScreenshotFlow();
-      case 'bookmark':
-        return this.handleBookmark();
-      case 'newTab':
-        return this.handleNewTab();
       case 'settings':
         return this.handleSettings();
       default:
@@ -333,11 +341,6 @@ export class MenuActions {
     }
   }
 
-  private handleHistory(): { type: string; url: string } {
-    chrome.runtime.sendMessage({ type: 'OPEN_URL', payload: 'chrome://history' } as Message);
-    return { type: 'redirect', url: 'chrome://history' };
-  }
-
   private handleScreenshotFlow(): { type: string; result: string } {
     // Start the screenshot selection flow
     this.screenshotSelector = new ScreenshotSelector();
@@ -372,20 +375,22 @@ export class MenuActions {
       }
 
       this.currentScreenshotDataUrl = finalDataUrl;
-      const screenshotConfig = this.config.screenshot || DEFAULT_SCREENSHOT_CONFIG;
 
-      // Show the screenshot panel
-      this.screenshotPanel = new ScreenshotPanel();
-      this.screenshotPanel.show(finalDataUrl, {
-        onSave: () => this.saveScreenshot(),
-        onCopy: () => this.copyScreenshotToClipboard(),
-        onAskAI: (question) => this.askAIAboutImage(question),
-        onDescribe: () => this.describeImage(),
-        onGenerateImage: (prompt) => this.generateImageFromPrompt(prompt),
-        onClose: () => {
-          this.screenshotPanel = null;
-        },
-      }, screenshotConfig);
+      // Show screenshot in CommandPalette
+      if (this.commandPalette) {
+        this.commandPalette.showScreenshot(finalDataUrl, {
+          onSave: () => this.saveScreenshot(),
+          onCopy: () => this.copyScreenshotToClipboard(),
+          onAskAI: (question) => this.askAIAboutImage(question),
+          onDescribe: () => this.describeImage(),
+          onGenerateImage: (prompt) => this.generateImageFromPrompt(prompt),
+          onClose: () => {
+            // Cleanup handled in CommandPalette
+          },
+        });
+      } else {
+        this.flowCallbacks?.onToast('无法显示截图面板', 'error');
+      }
 
     } catch (error) {
       this.flowCallbacks?.onToast(`截图失败: ${error}`, 'error');
@@ -455,84 +460,84 @@ export class MenuActions {
   }
 
   private async askAIAboutImage(question: string): Promise<void> {
-    if (!this.screenshotPanel) return;
+    if (!this.commandPalette) return;
 
     const validationError = this.validateAIConfig();
     if (validationError) {
-      this.screenshotPanel.showResult('错误', validationError);
+      this.commandPalette.updateScreenshotResult(validationError);
       return;
     }
 
-    this.screenshotPanel.showLoading('AI 正在分析...');
+    this.commandPalette.updateScreenshotResult('AI 正在分析...', true);
 
     const prompt = getAskImagePrompt(question);
     const response = await callVisionAI(
       this.currentScreenshotDataUrl,
       prompt,
       this.config,
-      (chunk, fullText) => {
-        this.screenshotPanel?.streamUpdate(chunk, fullText);
+      (_chunk, fullText) => {
+        this.commandPalette?.updateScreenshotResult(fullText, true);
       }
     );
 
     if (response.success && response.result) {
-      this.screenshotPanel.showResult('AI 回答', response.result);
+      this.commandPalette.updateScreenshotResult(response.result);
     } else {
-      this.screenshotPanel.showResult('错误', response.error || 'AI 请求失败');
+      this.commandPalette.updateScreenshotResult(response.error || 'AI 请求失败');
     }
   }
 
   private async describeImage(): Promise<void> {
-    if (!this.screenshotPanel) return;
+    if (!this.commandPalette) return;
 
     const validationError = this.validateAIConfig();
     if (validationError) {
-      this.screenshotPanel.showResult('错误', validationError);
+      this.commandPalette.updateScreenshotResult(validationError);
       return;
     }
 
-    this.screenshotPanel.showLoading('AI 正在描述图片...');
+    this.commandPalette.updateScreenshotResult('AI 正在描述图片...', true);
 
     const prompt = getDescribeImagePrompt();
     const response = await callVisionAI(
       this.currentScreenshotDataUrl,
       prompt,
       this.config,
-      (chunk, fullText) => {
-        this.screenshotPanel?.streamUpdate(chunk, fullText);
+      (_chunk, fullText) => {
+        this.commandPalette?.updateScreenshotResult(fullText, true);
       }
     );
 
     if (response.success && response.result) {
-      this.screenshotPanel.showResult('图片描述', response.result);
+      this.commandPalette.updateScreenshotResult(response.result);
     } else {
-      this.screenshotPanel.showResult('错误', response.error || 'AI 请求失败');
+      this.commandPalette.updateScreenshotResult(response.error || 'AI 请求失败');
     }
   }
 
   private async generateImageFromPrompt(prompt: string): Promise<void> {
-    if (!this.screenshotPanel) return;
+    if (!this.commandPalette) return;
 
     const screenshotConfig = this.config.screenshot || DEFAULT_SCREENSHOT_CONFIG;
 
     if (!screenshotConfig.enableImageGen) {
-      this.screenshotPanel.showResult('错误', '请先在设置中启用 AI 生图功能');
+      this.commandPalette.updateScreenshotResult('请先在设置中启用 AI 生图功能');
       return;
     }
 
     if (screenshotConfig.imageGenProvider === 'openai') {
       if (!this.config.apiKey) {
-        this.screenshotPanel.showResult('错误', '使用 OpenAI 生图需要配置 API Key');
+        this.commandPalette.updateScreenshotResult('使用 OpenAI 生图需要配置 API Key');
         return;
       }
     } else if (screenshotConfig.imageGenProvider === 'custom') {
       if (!screenshotConfig.customImageGenUrl) {
-        this.screenshotPanel.showResult('错误', '请配置自定义生图 API 地址');
+        this.commandPalette.updateScreenshotResult('请配置自定义生图 API 地址');
         return;
       }
     }
 
-    this.screenshotPanel.showLoading('正在生成图片...');
+    this.commandPalette.updateScreenshotResult('正在生成图片...', true);
 
     // First describe the current image to get context
     const describeResponse = await callVisionAI(
@@ -549,36 +554,40 @@ export class MenuActions {
     const response = await generateImage(fullPrompt, this.config, screenshotConfig);
 
     if (response.success && response.imageUrl) {
-      this.screenshotPanel.showGeneratedImage(response.imageUrl);
+      this.commandPalette.updateScreenshotGeneratedImage(response.imageUrl);
     } else {
-      this.screenshotPanel.showResult('错误', response.error || '图像生成失败');
+      this.commandPalette.updateScreenshotResult(response.error || '图像生成失败');
     }
   }
 
-  private async handleBookmark(): Promise<{ type: string; result?: string }> {
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'ADD_BOOKMARK',
-        payload: { title: document.title, url: window.location.href },
-      } as Message);
-      return { type: 'success', result: '已添加书签' };
-    } catch {
-      return { type: 'error', result: '添加书签失败' };
-    }
+  // New feature handlers
+
+  private handleContextChat(): { type: string; result: string } {
+    this.contextChatPanel = new ContextChatPanel(this.config);
+    this.contextChatPanel.show();
+    return { type: 'silent', result: '' };
   }
 
-  private handleNewTab(): { type: string; result: string } {
-    chrome.runtime.sendMessage({ type: 'NEW_TAB' } as Message);
-    return { type: 'success', result: '已打开新标签页' };
+  private handleSmartClip(): { type: string; result: string } {
+    this.smartClipPanel = new SmartClipPanel(this.config);
+    this.smartClipPanel.show();
+    return { type: 'silent', result: '' };
+  }
+
+  private handleFocusRead(): { type: string; result: string } {
+    this.focusReadMode = new FocusReadMode(this.config);
+    this.focusReadMode.enter();
+    return { type: 'silent', result: '' };
+  }
+
+  private handleBrowseTrail(): { type: string; result: string } {
+    this.browseTrailPanel = new BrowseTrailPanel();
+    this.browseTrailPanel.show();
+    return { type: 'silent', result: '' };
   }
 
   private handleSettings(): { type: string; result: string } {
-    try {
-      const url = chrome.runtime.getURL('options/index.html');
-      chrome.runtime.sendMessage({ type: 'OPEN_URL', payload: url } as Message);
-      return { type: 'success', result: '已打开设置页面' };
-    } catch {
-      return { type: 'error', result: '打开设置页面失败' };
-    }
+    // Settings are handled directly in CommandPalette, this is a fallback
+    return { type: 'silent', result: '' };
   }
 }

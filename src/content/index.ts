@@ -1,6 +1,5 @@
-import { RadialMenu } from './RadialMenu';
+import { CommandPalette } from './CommandPalette';
 import { MenuActions } from './MenuActions';
-import { ResultPanel } from './ResultPanel';
 import { SelectionPopover, PopoverPosition } from './SelectionPopover';
 import { MenuItem, DEFAULT_CONFIG, DEFAULT_SELECTION_MENU, DEFAULT_GLOBAL_MENU, MenuConfig } from '../types';
 import { getStorageData } from '../utils/storage';
@@ -16,7 +15,7 @@ interface ToastItem {
 }
 
 class TheCircle {
-  private radialMenu: RadialMenu;
+  private commandPalette: CommandPalette;
   private menuActions: MenuActions;
   private selectionPopover: SelectionPopover;
   private selectionMenuItems: MenuItem[] = DEFAULT_SELECTION_MENU;
@@ -28,21 +27,16 @@ class TheCircle {
   private activeToasts: ToastItem[] = [];
   private readonly MAX_TOASTS = 4;
   private currentSelectedText: string = '';
-  private resultPanels: Set<ResultPanel> = new Set();
 
   constructor() {
-    this.radialMenu = new RadialMenu();
+    this.commandPalette = new CommandPalette(DEFAULT_CONFIG);
     this.menuActions = new MenuActions(DEFAULT_CONFIG);
     this.selectionPopover = new SelectionPopover();
     // Set up flow callbacks for screenshot and other async operations
     this.menuActions.setFlowCallbacks({
       onToast: (message, type) => this.showToast(message, type),
     });
-
-    this.radialMenu.setOnClose(() => {
-      // Ensure popover is hidden when result panel closes
-      this.selectionPopover.hide();
-    });
+    this.menuActions.setCommandPalette(this.commandPalette);
 
     this.init();
   }
@@ -50,7 +44,7 @@ class TheCircle {
   private async init(): Promise<void> {
     // Initialize Shadow DOM and load styles
     getShadowRoot();
-    
+
     try {
       const cssUrl = chrome.runtime.getURL('assets/content.css');
       const response = await fetch(cssUrl);
@@ -65,7 +59,7 @@ class TheCircle {
     this.setupMessageListener();
     this.setupStorageListener();
     this.setupSelectionListener();
-    console.log('The Circle: Initialized with Shadow DOM');
+    console.log('The Circle: Initialized with Command Palette');
   }
 
   private async loadConfig(): Promise<void> {
@@ -73,9 +67,10 @@ class TheCircle {
       const data = await getStorageData();
       this.config = data.config;
       this.menuActions.setConfig(data.config);
+      this.commandPalette.setConfig(data.config);
       this.selectionMenuItems = data.selectionMenuItems;
       this.globalMenuItems = data.globalMenuItems;
-      
+
       // Apply the loaded theme
       this.applyTheme(this.config.theme);
     } catch (error) {
@@ -88,7 +83,12 @@ class TheCircle {
       if (changes.thecircle_config) {
         this.config = { ...this.config, ...changes.thecircle_config.newValue };
         this.menuActions.setConfig(this.config);
+        this.commandPalette.setConfig(this.config);
         this.applyTheme(this.config.theme);
+      }
+      // Listen for saved tasks changes to enable cross-tab sync
+      if (changes.thecircle_saved_tasks) {
+        this.commandPalette.loadRecentSavedTasks();
       }
     });
   }
@@ -96,7 +96,7 @@ class TheCircle {
   private applyTheme(theme: 'dark' | 'light' | 'system'): void {
     const host = getShadowHost();
     const container = host.shadowRoot?.getElementById('thecircle-container');
-    
+
     console.log('The Circle: Applying theme:', theme);
 
     // Remove existing theme classes from both host and container
@@ -113,12 +113,12 @@ class TheCircle {
     } else if (theme === 'system') {
       // Check system preference
       const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      
+
       const updateSystemTheme = (e: MediaQueryListEvent | MediaQueryList) => {
         // Remove classes first to avoid conflicts
         host.classList.remove(...removeClasses);
         container?.classList.remove(...removeClasses);
-        
+
         if (e.matches) {
           host.classList.add('dark');
           container?.classList.add('dark');
@@ -132,9 +132,6 @@ class TheCircle {
       updateSystemTheme(darkModeQuery);
 
       // Listen for changes
-      // Note: We might want to store this listener to remove it later if theme changes away from 'system'
-      // But for simplicity in this context, adding a new one is acceptable as applyTheme cleans classes.
-      // A more robust solution would track the listener.
       darkModeQuery.onchange = updateSystemTheme;
     }
   }
@@ -149,7 +146,7 @@ class TheCircle {
         if (el instanceof HTMLElement) {
           if (el.classList?.contains('thecircle-selection-popover') ||
               el.classList?.contains('thecircle-result-panel') ||
-              el.classList?.contains('thecircle-menu') ||
+              el.classList?.contains('thecircle-palette') ||
               el.classList?.contains('thecircle-toast')) {
             return;
           }
@@ -195,7 +192,7 @@ class TheCircle {
         if (el instanceof HTMLElement) {
           if (el.classList?.contains('thecircle-selection-popover') ||
               el.classList?.contains('thecircle-result-panel') ||
-              el.classList?.contains('thecircle-menu') ||
+              el.classList?.contains('thecircle-palette') ||
               el.classList?.contains('thecircle-toast')) {
             return;
           }
@@ -225,23 +222,6 @@ class TheCircle {
     // Set the selected text for menu actions
     this.menuActions.setSelectedText(this.currentSelectedText);
 
-    // Show the radial menu result panel for AI response
-    const selection = window.getSelection();
-    let selectionRect: DOMRect | null = null;
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      selectionRect = range.getBoundingClientRect();
-    }
-
-    // Create a new ResultPanel
-    const resultPanel = new ResultPanel();
-    this.resultPanels.add(resultPanel);
-    
-    resultPanel.setOnClose(() => {
-        this.resultPanels.delete(resultPanel);
-    });
-    resultPanel.setOnStop(() => abortAllRequests());
-
     const originalText = this.currentSelectedText;
     let translateRunId = 0;
 
@@ -249,19 +229,10 @@ class TheCircle {
       const runId = ++translateRunId;
       this.menuActions.setSelectedText(originalText);
 
-      resultPanel.show(translateItem.label, '', {
-        isLoading: true,
-        originalText,
-        type: 'translate',
-        selectionRect: selectionRect,
-        iconHtml: translateItem.icon,
-        translateTargetLanguage: targetLang,
-      });
-
       const onChunk = this.config.useStreaming
         ? (chunk: string, fullText: string) => {
             if (runId !== translateRunId) return;
-            resultPanel.streamUpdate(chunk, fullText);
+            this.commandPalette.streamUpdate(chunk, fullText);
           }
         : undefined;
 
@@ -272,14 +243,25 @@ class TheCircle {
       if (runId !== translateRunId) return;
 
       if (result.type === 'error') {
-        resultPanel.show('错误', result.result || '未知错误', { isLoading: false });
+        this.commandPalette.updateAIResult(result.result || '未知错误');
       } else if (result.type === 'ai') {
-        resultPanel.update(result.result || '');
+        this.commandPalette.updateAIResult(result.result || '');
       }
     };
 
-    resultPanel.setOnTranslateLanguageChange((targetLang) => {
-      void runTranslate(targetLang);
+    // Set active command and show AI result in command palette
+    this.commandPalette.setActiveCommand(translateItem);
+    this.commandPalette.showAIResult(translateItem.label, {
+      onStop: () => abortAllRequests(),
+      onTranslateLanguageChange: (targetLang) => {
+        void runTranslate(targetLang);
+      },
+    }, {
+      originalText,
+      resultType: 'translate',
+      translateTargetLanguage: this.config.preferredLanguage || 'zh-CN',
+      iconHtml: translateItem.icon,
+      actionType: 'translate',
     });
 
     await runTranslate(this.config.preferredLanguage || 'zh-CN');
@@ -360,52 +342,68 @@ class TheCircle {
       if (message.type === 'TOGGLE_MENU') {
         this.showMenu();
         sendResponse({ success: true });
+      } else if (message.type === 'OPEN_SETTINGS') {
+        this.openSettings();
+        sendResponse({ success: true });
       }
       return true;
     });
   }
 
-  private showMenu(): void {
-    // Hide selection popover when opening radial menu
+  private openSettings(): void {
+    // Hide selection popover when opening settings
     this.selectionPopover.hide();
 
-    // Always use global menu items (selection-based actions now handled by popover)
-    const menuItems = this.globalMenuItems;
+    // Show command palette and navigate to settings
+    if (!this.commandPalette.isVisible()) {
+      this.commandPalette.show(this.globalMenuItems, {
+        onSelect: async (item) => {
+          await this.handleMenuAction(item);
+        },
+        onClose: () => {
+          // Cleanup if needed
+        },
+      });
+    }
+    // Navigate to settings view
+    this.commandPalette.loadSettingsMenuItems().then(() => {
+      this.commandPalette.showSettings();
+    });
+  }
 
-    // Center in viewport
-    const x = window.innerWidth / 2;
-    const y = window.innerHeight / 2;
+  private showMenu(): void {
+    // Hide selection popover when opening command palette
+    this.selectionPopover.hide();
 
-    this.radialMenu.show(x, y, menuItems, async (item) => {
-      await this.handleMenuAction(item);
+    // If already visible, hide it (toggle behavior)
+    if (this.commandPalette.isVisible()) {
+      this.commandPalette.hide();
+      return;
+    }
+
+    // Show command palette with global menu items
+    this.commandPalette.show(this.globalMenuItems, {
+      onSelect: async (item) => {
+        await this.handleMenuAction(item);
+      },
+      onClose: () => {
+        // Cleanup if needed
+      },
     });
   }
 
   private async handleMenuAction(item: MenuItem): Promise<void> {
+    // Handle settings action specially - show settings in command palette
+    if (item.action === 'settings') {
+      await this.commandPalette.loadSettingsMenuItems();
+      this.commandPalette.showSettings();
+      return;
+    }
+
     // Show loading for AI actions
-    const aiActions = ['translate', 'summarize', 'explain', 'rewrite', 'codeExplain', 'summarizePage', 'askPage', 'rewritePage'];
+    const aiActions = ['translate', 'summarize', 'explain', 'rewrite', 'codeExplain', 'summarizePage'];
 
     if (aiActions.includes(item.action)) {
-      const resultPanel = new ResultPanel();
-      this.resultPanels.add(resultPanel);
-      
-      resultPanel.setOnClose(() => {
-        this.resultPanels.delete(resultPanel);
-      });
-      resultPanel.setOnStop(() => abortAllRequests());
-
-      // Try to get selection rect for positioning
-      const selection = window.getSelection();
-      let selectionRect: DOMRect | null = null;
-      if (selection && selection.rangeCount > 0 && selection.toString().trim()) {
-        try {
-          const range = selection.getRangeAt(0);
-          selectionRect = range.getBoundingClientRect();
-        } catch (e) {
-          // ignore
-        }
-      }
-
       const originalText = this.currentSelectedText || window.getSelection()?.toString() || '';
 
       if (item.action === 'translate') {
@@ -415,19 +413,10 @@ class TheCircle {
           const runId = ++translateRunId;
           this.menuActions.setSelectedText(originalText);
 
-          resultPanel.show(item.label, '', {
-            isLoading: true,
-            originalText,
-            type: 'translate',
-            selectionRect: selectionRect,
-            iconHtml: item.icon,
-            translateTargetLanguage: targetLang,
-          });
-
           const onChunk = this.config.useStreaming
             ? (chunk: string, fullText: string) => {
                 if (runId !== translateRunId) return;
-                resultPanel.streamUpdate(chunk, fullText);
+                this.commandPalette.streamUpdate(chunk, fullText);
               }
             : undefined;
 
@@ -438,207 +427,102 @@ class TheCircle {
           if (runId !== translateRunId) return;
 
           if (result.type === 'error') {
-            resultPanel.show('错误', result.result || '未知错误', { isLoading: false });
+            this.commandPalette.updateAIResult(result.result || '未知错误');
           } else if (result.type === 'ai') {
-            resultPanel.update(result.result || '');
+            this.commandPalette.updateAIResult(result.result || '');
           }
         };
 
-        resultPanel.setOnTranslateLanguageChange((targetLang) => {
-          void runTranslate(targetLang);
+        // Set active command and show AI result in command palette
+        this.commandPalette.setActiveCommand(item);
+        this.commandPalette.showAIResult(item.label, {
+          onStop: () => abortAllRequests(),
+          onTranslateLanguageChange: (targetLang) => {
+            void runTranslate(targetLang);
+          },
+        }, {
+          originalText,
+          resultType: 'translate',
+          translateTargetLanguage: this.config.preferredLanguage || 'zh-CN',
+          iconHtml: item.icon,
+          actionType: 'translate',
         });
 
         await runTranslate(this.config.preferredLanguage || 'zh-CN');
       } else {
         this.menuActions.setSelectedText(originalText);
 
-        if (item.action === 'askPage') {
-          resultPanel.show(item.label, '', {
-            isLoading: false,
-            originalText: '',
-            type: 'general',
-            selectionRect: selectionRect,
-            iconHtml: item.icon,
-          });
+        // Determine action type for metadata
+        const actionType = item.action;
 
-          const contentEl = resultPanel.getContentElement();
-          if (contentEl) {
-            contentEl.innerHTML = `
-              <div class="thecircle-screenshot-input-area">
-                <input type="text" class="thecircle-screenshot-input" placeholder="输入你想问当前页面的问题…" />
-                <div class="thecircle-screenshot-input-actions">
-                  <button class="thecircle-screenshot-btn thecircle-screenshot-btn-secondary" data-action="cancel">取消</button>
-                  <button class="thecircle-screenshot-btn thecircle-screenshot-btn-primary" data-action="submit">提交</button>
-                </div>
-              </div>
-            `;
-
-            const inputEl = contentEl.querySelector('input') as HTMLInputElement | null;
-            const cancelBtn = contentEl.querySelector('[data-action="cancel"]') as HTMLButtonElement | null;
-            const submitBtn = contentEl.querySelector('[data-action="submit"]') as HTMLButtonElement | null;
-
-            cancelBtn?.addEventListener('click', () => {
-              resultPanel.hide();
-            });
-
-            let runId = 0;
-            const runAsk = async () => {
-              const question = inputEl?.value.trim() || '';
-              if (!question) {
-                this.showToast('请输入问题', 'error');
-                return;
-              }
-
-              const currentRun = ++runId;
-              resultPanel.show(item.label, '', {
-                isLoading: true,
-                originalText: question,
-                type: 'general',
-                selectionRect: selectionRect,
-                iconHtml: item.icon,
-              });
-
-              const onChunk = this.config.useStreaming
-                ? (_chunk: string, fullText: string) => {
-                    if (currentRun !== runId) return;
-                    resultPanel.streamUpdate('', fullText);
-                  }
-                : undefined;
-
-              const result = await this.menuActions.execute(item, onChunk, { pageQuestion: question });
-              if (currentRun !== runId) return;
-
-              if (result.type === 'error') {
-                resultPanel.show('错误', result.result || '未知错误', { isLoading: false });
-              } else if (result.type === 'ai') {
-                resultPanel.update(result.result || '');
-              }
-            };
-
-            submitBtn?.addEventListener('click', () => {
-              void runAsk();
-            });
-
-            inputEl?.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void runAsk();
-              }
-            });
-
-            setTimeout(() => inputEl?.focus(), 0);
-          }
-        } else if (item.action === 'rewritePage') {
-          const hasSelection = !!originalText.trim();
-          const defaultUseSelection = hasSelection;
-
-          resultPanel.show(item.label, '', {
-            isLoading: false,
-            originalText: '',
-            type: 'general',
-            selectionRect: selectionRect,
-            iconHtml: item.icon,
-          });
-
-          const contentEl = resultPanel.getContentElement();
-          if (contentEl) {
-            contentEl.innerHTML = `
-              <div class="thecircle-screenshot-input-area">
-                <input type="text" class="thecircle-screenshot-input" placeholder="改写要求（可选，例如：更口语/更正式/更短/更长）" />
-                ${hasSelection ? `
-                  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;opacity:.9;">
-                    <input type="checkbox" data-action="use-selection" ${defaultUseSelection ? 'checked' : ''} />
-                    优先改写选中内容（否则改写整页内容）
-                  </label>
-                ` : ''}
-                <div class="thecircle-screenshot-input-actions">
-                  <button class="thecircle-screenshot-btn thecircle-screenshot-btn-secondary" data-action="cancel">取消</button>
-                  <button class="thecircle-screenshot-btn thecircle-screenshot-btn-primary" data-action="submit">开始改写</button>
-                </div>
-              </div>
-            `;
-
-            const inputEl = contentEl.querySelector('input.thecircle-screenshot-input') as HTMLInputElement | null;
-            const useSelectionEl = contentEl.querySelector('[data-action="use-selection"]') as HTMLInputElement | null;
-            const cancelBtn = contentEl.querySelector('[data-action="cancel"]') as HTMLButtonElement | null;
-            const submitBtn = contentEl.querySelector('[data-action="submit"]') as HTMLButtonElement | null;
-
-            cancelBtn?.addEventListener('click', () => {
-              resultPanel.hide();
-            });
-
-            let runId = 0;
-            const runRewrite = async () => {
-              const instruction = inputEl?.value.trim() || '';
-              const currentRun = ++runId;
-
-              resultPanel.show(item.label, '', {
-                isLoading: true,
-                originalText: instruction || (hasSelection && (useSelectionEl?.checked ?? defaultUseSelection) ? originalText : document.title),
-                type: 'general',
-                selectionRect: selectionRect,
-                iconHtml: item.icon,
-              });
-
-              const onChunk = this.config.useStreaming
-                ? (_chunk: string, fullText: string) => {
-                    if (currentRun !== runId) return;
-                    resultPanel.streamUpdate('', fullText);
-                  }
-                : undefined;
-
-              const result = await this.menuActions.execute(item, onChunk, {
-                rewriteInstruction: instruction,
-                rewriteUseSelection: hasSelection ? (useSelectionEl?.checked ?? defaultUseSelection) : false,
-              });
-
-              if (currentRun !== runId) return;
-
-              if (result.type === 'error') {
-                resultPanel.show('错误', result.result || '未知错误', { isLoading: false });
-              } else if (result.type === 'ai') {
-                resultPanel.update(result.result || '');
-              }
-            };
-
-            submitBtn?.addEventListener('click', () => {
-              void runRewrite();
-            });
-
-            inputEl?.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void runRewrite();
-              }
-            });
-
-            setTimeout(() => inputEl?.focus(), 0);
-          }
-        } else {
-          resultPanel.show(item.label, '', {
-            isLoading: true,
+        // Create refresh handler for page actions
+        const onRefresh = actionType === 'summarizePage' ? async () => {
+          // Reset content and start new request
+          this.commandPalette.setActiveCommand(item);
+          this.commandPalette.showAIResult(item.label, {
+            onStop: () => abortAllRequests(),
+            onRefresh,
+          }, {
             originalText,
-            type: 'general',
-            selectionRect: selectionRect,
+            resultType: 'general',
             iconHtml: item.icon,
+            actionType,
+            sourceUrl: window.location.href,
+            sourceTitle: document.title,
           });
 
           const onChunk = this.config.useStreaming
             ? (chunk: string, fullText: string) => {
-                resultPanel.streamUpdate(chunk, fullText);
+                this.commandPalette.streamUpdate(chunk, fullText);
               }
             : undefined;
 
           const result = await this.menuActions.execute(item, onChunk);
 
           if (result.type === 'error') {
-            resultPanel.show('错误', result.result || '未知错误', { isLoading: false });
+            this.commandPalette.updateAIResult(result.result || '未知错误');
           } else if (result.type === 'ai') {
-            resultPanel.update(result.result || '');
+            this.commandPalette.updateAIResult(result.result || '');
           }
+        } : undefined;
+
+        // Set active command and show AI result in command palette
+        this.commandPalette.setActiveCommand(item);
+        const restored = this.commandPalette.showAIResult(item.label, {
+          onStop: () => abortAllRequests(),
+          onRefresh,
+        }, {
+          originalText,
+          resultType: 'general',
+          iconHtml: item.icon,
+          actionType,
+          sourceUrl: window.location.href,
+          sourceTitle: document.title,
+        });
+
+        // If restored existing task, don't start new request
+        if (restored) return;
+
+        const onChunk = this.config.useStreaming
+          ? (chunk: string, fullText: string) => {
+              this.commandPalette.streamUpdate(chunk, fullText);
+            }
+          : undefined;
+
+        const result = await this.menuActions.execute(item, onChunk);
+
+        if (result.type === 'error') {
+          this.commandPalette.updateAIResult(result.result || '未知错误');
+        } else if (result.type === 'ai') {
+          this.commandPalette.updateAIResult(result.result || '');
         }
       }
     } else {
+      // Hide command palette for screenshot to allow area selection
+      if (item.action === 'screenshot') {
+        this.commandPalette.hide();
+      }
+
       const result = await this.menuActions.execute(item);
 
       if (result.type === 'error') {

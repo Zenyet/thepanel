@@ -1,5 +1,94 @@
 @import "tailwindcss";
 
 @layer utilities {
-  /* Add any popup specific utilities here */
+  /* Shortcut display */
+  .shortcut-display {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    min-height: 40px;
+    transition: all 150ms ease;
+  }
+
+  .dark .shortcut-display {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .shortcut-display.recording {
+    border: 2px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .shortcut-key {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
+    color: #374151;
+  }
+
+  .dark .shortcut-key {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .shortcut-separator {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  .dark .shortcut-separator {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Record button */
+  .record-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    transition: all 150ms ease;
+  }
+
+  .dark .record-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .record-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .dark .record-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  .record-btn.recording {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  .dark .record-btn.recording {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #f87171;
+  }
 }

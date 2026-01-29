@@ -52,7 +52,6 @@ export default defineConfig({
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
         'popup/index': resolve(__dirname, 'src/popup/index.html'),
-        'options/index': resolve(__dirname, 'src/options/index.html'),
       },
       output: {
         entryFileNames: '[name].js',

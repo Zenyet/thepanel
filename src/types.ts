@@ -28,6 +28,11 @@ export interface ScreenshotConfig {
   imageSize: '1024x1024' | '1792x1024' | '1024x1792';
 }
 
+export interface HistoryConfig {
+  maxSaveCount: number; // Maximum number of saved tasks in IndexedDB
+  panelDisplayCount: number; // Number of tasks to display in panel
+}
+
 export interface MenuConfig {
   shortcut: string;
   theme: 'dark' | 'light' | 'system';
@@ -40,6 +45,7 @@ export interface MenuConfig {
   useStreaming: boolean;
   screenshot?: ScreenshotConfig;
   popoverPosition?: 'above' | 'below';
+  history?: HistoryConfig;
 }
 
 export interface StorageData {
@@ -59,6 +65,11 @@ export const DEFAULT_SCREENSHOT_CONFIG: ScreenshotConfig = {
   imageSize: '1024x1024',
 };
 
+export const DEFAULT_HISTORY_CONFIG: HistoryConfig = {
+  maxSaveCount: 100,
+  panelDisplayCount: 10,
+};
+
 export const DEFAULT_CONFIG: MenuConfig = {
   shortcut: 'Double+Shift',
   theme: 'system',
@@ -68,6 +79,7 @@ export const DEFAULT_CONFIG: MenuConfig = {
   useStreaming: true,
   screenshot: DEFAULT_SCREENSHOT_CONFIG,
   popoverPosition: 'above',
+  history: DEFAULT_HISTORY_CONFIG,
 };
 
 export const DEFAULT_SELECTION_MENU: MenuItem[] = [
@@ -82,14 +94,13 @@ export const DEFAULT_SELECTION_MENU: MenuItem[] = [
 ];
 
 export const DEFAULT_GLOBAL_MENU: MenuItem[] = [
-  { id: 'askPage', icon: icons.messageCircle, label: '页面提问', action: 'askPage', enabled: true, order: 0 },
+  { id: 'contextChat', icon: icons.messageCircle, label: '上下文追问', action: 'contextChat', enabled: true, order: 0 },
   { id: 'summarizePage', icon: icons.summarizePage, label: '总结页面', action: 'summarizePage', enabled: true, order: 1 },
-  { id: 'rewritePage', icon: icons.rewrite, label: '内容改写', action: 'rewritePage', enabled: true, order: 2 },
-  { id: 'history', icon: icons.history, label: '历史记录', action: 'history', enabled: true, order: 3 },
+  { id: 'focusRead', icon: icons.fileText, label: '阅读模式', action: 'focusRead', enabled: true, order: 2 },
+  { id: 'browseTrail', icon: icons.history, label: '浏览轨迹', action: 'browseTrail', enabled: true, order: 3 },
   { id: 'screenshot', icon: icons.screenshot, label: '截图', action: 'screenshot', enabled: true, order: 4 },
-  { id: 'bookmark', icon: icons.bookmark, label: '书签', action: 'bookmark', enabled: true, order: 5 },
-  { id: 'newTab', icon: icons.newTab, label: '新标签', action: 'newTab', enabled: true, order: 6 },
-  { id: 'settings', icon: icons.settings, label: '设置', action: 'settings', enabled: true, order: 7 },
+  { id: 'smartClip', icon: icons.bookmark, label: '智能剪藏', action: 'smartClip', enabled: true, order: 5 },
+  { id: 'settings', icon: icons.settings, label: '设置', action: 'settings', enabled: true, order: 6 },
 ];
 
 export type MessageType =
@@ -136,4 +147,64 @@ export interface AIImageGenRequestPayload {
   prompt: string;
   config: MenuConfig;
   screenshotConfig: ScreenshotConfig;
+}
+
+// Smart Clip types
+export interface SmartClip {
+  id: string;
+  url: string;
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  screenshot?: string;
+  userNote?: string;
+  content: string;
+  createdAt: number;
+}
+
+// Context Chat types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  references?: { text: string }[];
+}
+
+export interface ChatSession {
+  id: string;
+  url: string;
+  title: string;
+  messages: ChatMessage[];
+  pageContext: string;
+  updatedAt: number;
+}
+
+// Quick Actions types
+export interface QuickCommand {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  action: string;
+  keywords: string[];
+}
+
+// Browse Trail types
+export interface TrailEntry {
+  id: string;
+  url: string;
+  title: string;
+  summary?: string;
+  thumbnail?: string;
+  visitedAt: number;
+  duration?: number;
+  sessionId: string;
+}
+
+export interface BrowseSession {
+  id: string;
+  startedAt: number;
+  endedAt?: number;
+  entries: TrailEntry[];
 }
