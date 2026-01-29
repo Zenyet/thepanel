@@ -496,7 +496,7 @@ export class CommandPalette {
 
     this.container = document.createElement('div');
     this.container.id = 'thecircle-palette-root';
-    this.shadowRoot = this.container.attachShadow({ mode: 'closed' });
+    this.shadowRoot = this.container.attachShadow({ mode: 'open' });
 
     const style = document.createElement('style');
     style.textContent = this.getStyles();
@@ -3095,23 +3095,49 @@ export class CommandPalette {
       }
 
       /* ========================================
-         Scrollbar - Minimal
+         Scrollbar - Minimal & Isolated
          ======================================== */
-      .glass-body::-webkit-scrollbar {
-        width: 6px;
+      .glass-body,
+      .glass-ai-content,
+      .glass-ai-result-body {
+        /* Firefox */
+        scrollbar-width: thin;
+        scrollbar-color: var(--glass-border) transparent;
       }
 
-      .glass-body::-webkit-scrollbar-track {
-        background: transparent;
+      .glass-body::-webkit-scrollbar,
+      .glass-ai-content::-webkit-scrollbar,
+      .glass-ai-result-body::-webkit-scrollbar {
+        width: 6px !important;
+        height: 6px !important;
+        background: transparent !important;
       }
 
-      .glass-body::-webkit-scrollbar-thumb {
-        background: var(--glass-border);
+      .glass-body::-webkit-scrollbar-track,
+      .glass-ai-content::-webkit-scrollbar-track,
+      .glass-ai-result-body::-webkit-scrollbar-track {
+        background: transparent !important;
         border-radius: 3px;
       }
 
-      .glass-body::-webkit-scrollbar-thumb:hover {
-        background: var(--glass-border-strong);
+      .glass-body::-webkit-scrollbar-thumb,
+      .glass-ai-content::-webkit-scrollbar-thumb,
+      .glass-ai-result-body::-webkit-scrollbar-thumb {
+        background: var(--glass-border) !important;
+        border-radius: 3px;
+        border: none !important;
+      }
+
+      .glass-body::-webkit-scrollbar-thumb:hover,
+      .glass-ai-content::-webkit-scrollbar-thumb:hover,
+      .glass-ai-result-body::-webkit-scrollbar-thumb:hover {
+        background: var(--glass-border-strong) !important;
+      }
+
+      .glass-body::-webkit-scrollbar-corner,
+      .glass-ai-content::-webkit-scrollbar-corner,
+      .glass-ai-result-body::-webkit-scrollbar-corner {
+        background: transparent !important;
       }
 
       /* ========================================
