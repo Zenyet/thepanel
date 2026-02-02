@@ -2,6 +2,7 @@
 import { TrailEntry, BrowseSession } from '../types';
 
 const TRAIL_STORAGE_KEY = 'thecircle_browse_trail';
+const MAX_TRAIL_ENTRIES = 1000;
 
 // Helper functions for CommandPalette to use
 
@@ -53,6 +54,35 @@ export function exportTrailData(sessions: BrowseSession[]): void {
   URL.revokeObjectURL(url);
 }
 
+/** Count total entries across all sessions */
+function countEntries(sessions: BrowseSession[]): number {
+  let count = 0;
+  for (const session of sessions) {
+    count += session.entries.length;
+  }
+  return count;
+}
+
+/** Trim oldest entries to stay within maxEntries limit */
+function trimEntries(sessions: BrowseSession[], maxEntries: number): BrowseSession[] {
+  let total = countEntries(sessions);
+  if (total <= maxEntries) return sessions;
+
+  // Sessions are newest-first, trim from the end (oldest sessions)
+  for (let i = sessions.length - 1; i >= 0 && total > maxEntries; i--) {
+    const session = sessions[i];
+    const overflow = total - maxEntries;
+    if (session.entries.length <= overflow) {
+      total -= session.entries.length;
+      sessions.splice(i, 1);
+    } else {
+      session.entries.splice(0, overflow);
+      total -= overflow;
+    }
+  }
+  return sessions.filter(s => s.entries.length > 0);
+}
+
 // Trail Recorder - Records browsing activity in background
 export class TrailRecorder {
   private currentSessionId: string;
@@ -64,15 +94,8 @@ export class TrailRecorder {
   }
 
   private async startRecording(): Promise<void> {
-    // Record current page
+    // Record current page on load (no need for beforeunload)
     await this.recordPage();
-
-    // Listen for navigation events
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => {
-        this.recordPage();
-      });
-    }
   }
 
   public async recordPage(): Promise<void> {
@@ -104,21 +127,57 @@ export class TrailRecorder {
         sessions.unshift(session);
       }
 
-      // Avoid duplicate entries for the same URL in quick succession
-      const lastEntry = session.entries[session.entries.length - 1];
-      if (lastEntry && lastEntry.url === entry.url && Date.now() - lastEntry.visitedAt < 5000) {
-        return;
+      // Avoid duplicate entries: check recent entries across ALL sessions within 30 seconds
+      const recentDuplicateTime = 30000; // 30 seconds
+      const now = Date.now();
+      outer: for (const s of sessions) {
+        // Sessions are sorted newest-first, skip if entire session is too old
+        if (s.entries.length > 0 && now - s.entries[s.entries.length - 1].visitedAt > recentDuplicateTime) {
+          break; // All remaining sessions are older
+        }
+        for (let i = s.entries.length - 1; i >= 0; i--) {
+          const e = s.entries[i];
+          if (now - e.visitedAt > recentDuplicateTime) break;
+          if (e.url === entry.url) return; // Skip duplicate
+        }
       }
 
       session.entries.push(entry);
 
       // Keep only last 30 days of history
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const filteredSessions = sessions.filter(s => s.startedAt > thirtyDaysAgo);
+      let filteredSessions = sessions.filter(s => s.startedAt > thirtyDaysAgo);
+
+      // Enforce max entry count
+      filteredSessions = trimEntries(filteredSessions, MAX_TRAIL_ENTRIES);
 
       await chrome.storage.local.set({ [TRAIL_STORAGE_KEY]: filteredSessions });
     } catch (error) {
+      // On quota exceeded, auto-cleanup and retry
+      if (this.isQuotaError(error)) {
+        await this.emergencyCleanup();
+        return;
+      }
       console.error('Failed to record page:', error);
+    }
+  }
+
+  private isQuotaError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') return true;
+    if (error instanceof Error && error.message.includes('QUOTA_BYTES')) return true;
+    return false;
+  }
+
+  private async emergencyCleanup(): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(TRAIL_STORAGE_KEY);
+      const sessions: BrowseSession[] = result[TRAIL_STORAGE_KEY] || [];
+      // Aggressively trim to half the max
+      const trimmed = trimEntries(sessions, Math.floor(MAX_TRAIL_ENTRIES / 2));
+      await chrome.storage.local.set({ [TRAIL_STORAGE_KEY]: trimmed });
+    } catch {
+      // Last resort: clear all trail data
+      await clearTrailHistory();
     }
   }
 
